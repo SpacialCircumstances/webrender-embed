@@ -1,5 +1,5 @@
 use webrender::Renderer;
-use gleam::gl;
+use gleam::gl as opengl;
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::WindowBuilder;
@@ -15,6 +15,10 @@ fn main() {
     let windowed_context = ContextBuilder::new().build_windowed(wb, &el).unwrap();
     let windowed_context = unsafe { windowed_context.make_current().unwrap() };
 
+    let gl = unsafe {
+        opengl::GlFns::load_with(|ptr| windowed_context.get_proc_address(ptr))
+    };
+
     el.run(move |event, _target, control_flow| {
         match event {
             Event::WindowEvent { window_id, event } => {
@@ -29,7 +33,10 @@ fn main() {
                 }
             },
             Event::RedrawRequested(_) => {
-
+                println!("Redraw");
+                gl.clear_color(0.5, 0.0, 0.2, 1.0);
+                gl.clear(opengl::COLOR_BUFFER_BIT);
+                windowed_context.swap_buffers();
             },
             Event::LoopDestroyed => (),
             _ => ()

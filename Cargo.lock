@@ -687,6 +687,7 @@ dependencies = [
 name = "webrender-embed"
 version = "0.1.0"
 dependencies = [
+ "gleam",
  "webrender",
 ]
 

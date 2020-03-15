@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 webrender = "0.61.0"
+gleam = "0.6.17"

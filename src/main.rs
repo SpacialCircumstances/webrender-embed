@@ -1,10 +1,41 @@
-use webrender::Renderer;
+use webrender::{Renderer, RendererOptions, WrShaders};
+use webrender::api::{RenderNotifier, DocumentId};
+use webrender::api::units::DeviceIntSize;
 use gleam::gl as opengl;
 use glutin::event::{Event, WindowEvent};
-use glutin::event_loop::{ControlFlow, EventLoop};
+use glutin::event_loop::{ControlFlow, EventLoop, EventLoopProxy};
 use glutin::window::WindowBuilder;
 use glutin::{ContextBuilder, GlRequest, Api};
 use glutin::dpi::LogicalSize;
+
+struct Notifier<T: 'static + Send> {
+    proxy: EventLoopProxy<T>
+}
+
+impl<T: 'static + Send> Notifier<T> {
+    fn new(el: &EventLoop<T>) -> Self {
+        Notifier {
+            proxy: el.create_proxy()
+        }
+    }
+}
+
+impl<T: 'static + Send> RenderNotifier for Notifier<T> {
+    fn clone(&self) -> Box<RenderNotifier> {
+        let notif = Notifier {
+            proxy: self.proxy.clone()
+        };
+        Box::new(notif)
+    }
+
+    fn wake_up(&self) {
+        println!("Wake up")
+    }
+
+    fn new_frame_ready(&self, _: DocumentId, scrolled: bool, composite_needed: bool, render_time_ns: Option<u64>) {
+        self.wake_up()
+    }
+}
 
 fn main() {
     let el = EventLoop::new();
@@ -22,6 +53,11 @@ fn main() {
     let gl = unsafe {
         opengl::GlFns::load_with(|ptr| windowed_context.get_proc_address(ptr))
     };
+
+    let notifier = Notifier::new(&el);
+    let options = RendererOptions::default();
+    let size = DeviceIntSize::new(800, 600);
+    let (renderer, sender) = Renderer::new(gl.clone(), Box::new(notifier), options, None, size).unwrap();
 
     el.run(move |event, _target, control_flow| {
         match event {

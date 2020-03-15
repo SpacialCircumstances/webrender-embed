@@ -1,6 +1,6 @@
 use webrender::{Renderer, RendererOptions};
-use webrender::api::{RenderNotifier, DocumentId, DisplayListBuilder, Transaction, Epoch, PipelineId};
-use webrender::api::units::{LayoutSize, DeviceIntSize};
+use webrender::api::{ColorF, RenderNotifier, DocumentId, DisplayListBuilder, Transaction, Epoch, PipelineId, CommonItemProperties, SpaceAndClipInfo};
+use webrender::api::units::{LayoutSize, DeviceIntSize, LayoutRect, LayoutPoint};
 use gleam::gl as opengl;
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop, EventLoopProxy};
@@ -39,7 +39,12 @@ impl<T: 'static + Send> RenderNotifier for Notifier<T> {
 }
 
 fn render_wr(builder: &mut DisplayListBuilder) {
-
+    let rect_size = LayoutRect::new(
+        LayoutPoint::new(100.0, 100.0),
+        LayoutSize::new(100.0, 200.0)
+    );
+    let rect_props = CommonItemProperties::new(rect_size, SpaceAndClipInfo::default());
+    builder.push_rect(&rect_props, ColorF::new(0.0, 1.0, 1.0, 1.0))
 }
 
 fn main() {

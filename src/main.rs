@@ -4,21 +4,35 @@ use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::WindowBuilder;
 use glutin::ContextBuilder;
+use glutin::dpi::LogicalSize;
 
 fn main() {
     let el = EventLoop::new();
-    let wb = WindowBuilder::new().with_title("A fantastic window!");
+    let wb = WindowBuilder::new()
+        .with_title("Embedded webrender")
+        .with_inner_size(LogicalSize::new(800, 600));
 
     let windowed_context = ContextBuilder::new().build_windowed(wb, &el).unwrap();
-
     let windowed_context = unsafe { windowed_context.make_current().unwrap() };
 
-    println!(
-        "Pixel format of the window's GL context: {:?}",
-        windowed_context.get_pixel_format()
-    );
+    el.run(move |event, _target, control_flow| {
+        match event {
+            Event::WindowEvent { window_id, event } => {
+                match event {
+                    WindowEvent::CloseRequested => {
+                        *control_flow = ControlFlow::Exit
+                    },
+                    WindowEvent::Resized(size) => {
+                        windowed_context.resize(size)
+                    },
+                    _ => ()
+                }
+            },
+            Event::RedrawRequested(_) => {
 
-    el.run(|event, target, control_flow| {
-        println!("{:?}", event);
+            },
+            Event::LoopDestroyed => (),
+            _ => ()
+        }
     });
 }

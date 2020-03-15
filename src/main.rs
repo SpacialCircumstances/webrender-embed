@@ -1,12 +1,13 @@
-use webrender::{Renderer, RendererOptions, WrShaders};
-use webrender::api::{RenderNotifier, DocumentId};
-use webrender::api::units::DeviceIntSize;
+use webrender::{Renderer, RendererOptions};
+use webrender::api::{RenderNotifier, DocumentId, DisplayListBuilder, Transaction, Epoch, PipelineId};
+use webrender::api::units::{LayoutSize, DeviceIntSize};
 use gleam::gl as opengl;
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop, EventLoopProxy};
 use glutin::window::WindowBuilder;
 use glutin::{ContextBuilder, GlRequest, Api};
 use glutin::dpi::LogicalSize;
+use webrender::euclid::Size2D;
 
 struct Notifier<T: 'static + Send> {
     proxy: EventLoopProxy<T>
@@ -37,6 +38,10 @@ impl<T: 'static + Send> RenderNotifier for Notifier<T> {
     }
 }
 
+fn render_wr(builder: &mut DisplayListBuilder) {
+
+}
+
 fn main() {
     let el = EventLoop::new();
     let wb = WindowBuilder::new()
@@ -57,7 +62,19 @@ fn main() {
     let notifier = Notifier::new(&el);
     let options = RendererOptions::default();
     let size = DeviceIntSize::new(800, 600);
-    let (renderer, sender) = Renderer::new(gl.clone(), Box::new(notifier), options, None, size).unwrap();
+    let layout_size = LayoutSize::new(800.0, 600.0);
+    let (mut renderer, sender) = Renderer::new(gl.clone(), Box::new(notifier), options, None, size).unwrap();
+
+    let api = sender.create_api();
+    let doc_id = api.add_document(size, 0);
+    let epoch = Epoch(0);
+    let pipeline_id = PipelineId(0, 0);
+    let mut builder = DisplayListBuilder::new(pipeline_id, layout_size);
+    let mut txn = Transaction::new();
+    render_wr(&mut builder);
+    txn.set_display_list(epoch, None, layout_size, builder.finalize(), true);
+    txn.generate_frame();
+    api.send_transaction(doc_id, txn);
 
     el.run(move |event, _target, control_flow| {
         match event {
@@ -76,6 +93,8 @@ fn main() {
                 println!("Redraw");
                 gl.clear_color(0.5, 0.0, 0.2, 1.0);
                 gl.clear(opengl::COLOR_BUFFER_BIT | opengl::DEPTH_BUFFER_BIT | opengl::STENCIL_BUFFER_BIT);
+                renderer.update();
+                renderer.render(size).unwrap();
                 windowed_context.swap_buffers().unwrap();
             },
             Event::LoopDestroyed => (),

@@ -3,7 +3,7 @@ use gleam::gl as opengl;
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::WindowBuilder;
-use glutin::ContextBuilder;
+use glutin::{ContextBuilder, GlRequest, Api};
 use glutin::dpi::LogicalSize;
 
 fn main() {
@@ -12,7 +12,11 @@ fn main() {
         .with_title("Embedded webrender")
         .with_inner_size(LogicalSize::new(800, 600));
 
-    let windowed_context = ContextBuilder::new().build_windowed(wb, &el).unwrap();
+    let windowed_context = ContextBuilder::new()
+        .with_gl(GlRequest::Specific(Api::OpenGl, (3, 3)))
+        .build_windowed(wb, &el)
+        .unwrap();
+
     let windowed_context = unsafe { windowed_context.make_current().unwrap() };
 
     let gl = unsafe {

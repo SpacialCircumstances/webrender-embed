@@ -40,7 +40,7 @@ fn main() {
                 println!("Redraw");
                 gl.clear_color(0.5, 0.0, 0.2, 1.0);
                 gl.clear(opengl::COLOR_BUFFER_BIT | opengl::DEPTH_BUFFER_BIT | opengl::STENCIL_BUFFER_BIT);
-                windowed_context.swap_buffers();
+                windowed_context.swap_buffers().unwrap();
             },
             Event::LoopDestroyed => (),
             _ => ()

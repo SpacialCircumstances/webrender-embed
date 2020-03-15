@@ -101,4 +101,6 @@ fn main() {
             _ => ()
         }
     });
+
+    renderer.deinit();
 }

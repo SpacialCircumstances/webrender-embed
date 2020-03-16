@@ -7,7 +7,6 @@ use glutin::event_loop::{ControlFlow, EventLoop, EventLoopProxy};
 use glutin::window::WindowBuilder;
 use glutin::{ContextBuilder, GlRequest, Api};
 use glutin::dpi::LogicalSize;
-use webrender::euclid::Size2D;
 use glutin::platform::desktop::EventLoopExtDesktop;
 
 struct Notifier<T: 'static + Send> {
@@ -23,7 +22,7 @@ impl<T: 'static + Send> Notifier<T> {
 }
 
 impl<T: 'static + Send> RenderNotifier for Notifier<T> {
-    fn clone(&self) -> Box<RenderNotifier> {
+    fn clone(&self) -> Box<dyn RenderNotifier> {
         let notif = Notifier {
             proxy: self.proxy.clone()
         };
@@ -34,7 +33,7 @@ impl<T: 'static + Send> RenderNotifier for Notifier<T> {
         println!("Wake up")
     }
 
-    fn new_frame_ready(&self, _: DocumentId, scrolled: bool, composite_needed: bool, render_time_ns: Option<u64>) {
+    fn new_frame_ready(&self, _: DocumentId, _scrolled: bool, _composite_needed: bool, _render_time_ns: Option<u64>) {
         self.wake_up()
     }
 }
@@ -172,7 +171,7 @@ fn main() {
         let mut txn = Transaction::new();
 
         match event {
-            Event::WindowEvent { window_id, event } => {
+            Event::WindowEvent { window_id: _, event } => {
                 match event {
                     WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit

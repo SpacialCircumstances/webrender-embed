@@ -166,6 +166,8 @@ fn main() {
     api.send_transaction(doc_id, txn);
 
     el.run(move |event, _target, control_flow| {
+        let next_frame_time = std::time::Instant::now() + std::time::Duration::from_nanos(16_666_667);
+        *control_flow = ControlFlow::WaitUntil(next_frame_time);
         let mut txn = Transaction::new();
 
         match event {
@@ -180,20 +182,15 @@ fn main() {
                     _ => ()
                 }
             },
-            Event::RedrawRequested(_) => {
-                println!("Redraw");
-
-                api.send_transaction(doc_id, txn);
-
-                renderer.update();
-                renderer.render(size).unwrap();
-                let _ = renderer.flush_pipeline_info();
-                windowed_context.swap_buffers().ok();
-            },
-            Event::LoopDestroyed => (),
             _ => ()
         }
+
+        renderer.update();
+        renderer.render(size).unwrap();
+        windowed_context.swap_buffers().ok();
     });
+
+    println!("The end");
 
     renderer.deinit();
 }

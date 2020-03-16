@@ -182,9 +182,6 @@ fn main() {
             },
             Event::RedrawRequested(_) => {
                 println!("Redraw");
-                if txn.is_empty() {
-                    txn.generate_frame()
-                }
 
                 api.send_transaction(doc_id, txn);
 

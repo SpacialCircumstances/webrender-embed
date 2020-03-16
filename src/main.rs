@@ -8,6 +8,7 @@ use glutin::window::WindowBuilder;
 use glutin::{ContextBuilder, GlRequest, Api};
 use glutin::dpi::LogicalSize;
 use webrender::euclid::Size2D;
+use glutin::platform::desktop::EventLoopExtDesktop;
 
 struct Notifier<T: 'static + Send> {
     proxy: EventLoopProxy<T>
@@ -117,7 +118,7 @@ fn render_wr(api: &RenderApi, pipeline_id: PipelineId, txn: &mut Transaction, bu
 }
 
 fn main() {
-    let el = EventLoop::new();
+    let mut el = EventLoop::new();
     let wb = WindowBuilder::new()
         .with_title("Embedded webrender")
         .with_inner_size(LogicalSize::new(800, 600));
@@ -165,7 +166,7 @@ fn main() {
     txn.generate_frame();
     api.send_transaction(doc_id, txn);
 
-    el.run(move |event, _target, control_flow| {
+    el.run_return(|event, _target, control_flow| {
         let next_frame_time = std::time::Instant::now() + std::time::Duration::from_nanos(16_666_667);
         *control_flow = ControlFlow::WaitUntil(next_frame_time);
         let mut txn = Transaction::new();
@@ -189,8 +190,6 @@ fn main() {
         renderer.render(size).unwrap();
         windowed_context.swap_buffers().ok();
     });
-
-    println!("The end");
 
     renderer.deinit();
 }

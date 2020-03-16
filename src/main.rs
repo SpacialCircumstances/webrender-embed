@@ -8,20 +8,25 @@ use glutin::window::WindowBuilder;
 use glutin::{ContextBuilder, GlRequest, Api};
 use glutin::dpi::LogicalSize;
 use webrender::euclid::Size2D;
+use crate::UserEvent::WakeUp;
 
-struct Notifier<T: 'static + Send> {
-    proxy: EventLoopProxy<T>
+enum UserEvent {
+    WakeUp
 }
 
-impl<T: 'static + Send> Notifier<T> {
-    fn new(el: &EventLoop<T>) -> Self {
+struct Notifier {
+    proxy: EventLoopProxy<UserEvent>
+}
+
+impl Notifier {
+    fn new(el: &EventLoop<UserEvent>) -> Self {
         Notifier {
             proxy: el.create_proxy()
         }
     }
 }
 
-impl<T: 'static + Send> RenderNotifier for Notifier<T> {
+impl RenderNotifier for Notifier {
     fn clone(&self) -> Box<RenderNotifier> {
         let notif = Notifier {
             proxy: self.proxy.clone()
@@ -30,7 +35,7 @@ impl<T: 'static + Send> RenderNotifier for Notifier<T> {
     }
 
     fn wake_up(&self) {
-        println!("Wake up")
+        self.proxy.send_event(WakeUp);
     }
 
     fn new_frame_ready(&self, _: DocumentId, scrolled: bool, composite_needed: bool, render_time_ns: Option<u64>) {
@@ -117,7 +122,7 @@ fn render_wr(api: &RenderApi, pipeline_id: PipelineId, txn: &mut Transaction, bu
 }
 
 fn main() {
-    let el = EventLoop::new();
+    let el: EventLoop<UserEvent> = EventLoop::with_user_event();
     let wb = WindowBuilder::new()
         .with_title("Embedded webrender")
         .with_inner_size(LogicalSize::new(800, 600));
@@ -194,6 +199,8 @@ fn main() {
                 windowed_context.swap_buffers().ok();
             },
             Event::LoopDestroyed => (),
+            Event::UserEvent(WakeUp) => {
+            }
             _ => ()
         }
     });

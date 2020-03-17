@@ -1,6 +1,6 @@
 use webrender::{Renderer, RendererOptions};
 use webrender::api::{ColorF, RenderNotifier, RenderApi, DocumentId, DisplayListBuilder, Transaction, Epoch, PipelineId, CommonItemProperties, SpaceAndClipInfo, PrimitiveFlags, ImageDescriptor, ImageData, ImageFormat, ImageDescriptorFlags, ComplexClipRegion, BorderRadius, ClipMode, BorderStyle, BorderDetails, ImageMask, BorderSide, NormalBorder};
-use webrender::api::units::{LayoutSize, DeviceIntSize, LayoutRect, LayoutPoint, LayoutSideOffsets};
+use webrender::api::units::{LayoutSize, DeviceIntSize, LayoutRect, LayoutPoint, LayoutSideOffsets, Au};
 use gleam::gl as opengl;
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop, EventLoopProxy};
@@ -8,6 +8,8 @@ use glutin::window::WindowBuilder;
 use glutin::{ContextBuilder, GlRequest, Api};
 use glutin::dpi::LogicalSize;
 use glutin::platform::desktop::EventLoopExtDesktop;
+use std::fs::File;
+use std::io::Read;
 
 struct Notifier<T: 'static + Send> {
     proxy: EventLoopProxy<T>
@@ -102,6 +104,16 @@ fn main() {
     let layout_size = size.to_f32() / webrender::euclid::Scale::new(1.0);
     let mut builder = DisplayListBuilder::new(pipeline_id, layout_size);
     let mut txn = Transaction::new();
+
+    let font_key = api.generate_font_key();
+    let font_inst_key = api.generate_font_instance_key();
+
+    let mut font_file = File::open("OpenSans-Regular.ttf").unwrap();
+    let mut font_bytes = Vec::new();
+    font_file.read_to_end(&mut font_bytes).unwrap();
+
+    txn.add_raw_font(font_key, font_bytes, 0);
+    txn.add_font_instance(font_inst_key, font_key, Au::new(600), None, None, vec![]);
 
     render_wr(&api, pipeline_id, &mut txn, &mut builder);
 

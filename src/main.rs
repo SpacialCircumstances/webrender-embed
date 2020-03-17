@@ -48,19 +48,6 @@ fn render_wr(api: &RenderApi, pipeline_id: PipelineId, txn: &mut Transaction, bu
         spatial_id,
         PrimitiveFlags::IS_BACKFACE_VISIBLE,
     );
-
-    let image_mask_key = api.generate_image_key();
-    txn.add_image(
-        image_mask_key,
-        ImageDescriptor::new(2, 2, ImageFormat::R8, ImageDescriptorFlags::IS_OPAQUE),
-        ImageData::new(vec![0, 80, 180, 255]),
-        None,
-    );
-    let mask = ImageMask {
-        image: image_mask_key,
-        rect: LayoutRect::new(LayoutPoint::new(75.0, 75.0), LayoutSize::new(100.0, 100.0)),
-        repeat: false,
-    };
     let complex = ComplexClipRegion::new(
         LayoutRect::new(LayoutPoint::new(50.0, 50.0), LayoutSize::new(100.0, 100.0)),
         BorderRadius::uniform(20.0),
@@ -69,8 +56,8 @@ fn render_wr(api: &RenderApi, pipeline_id: PipelineId, txn: &mut Transaction, bu
     let clip_id = builder.define_clip(
         &root_space_and_clip,
         content_bounds,
-        vec![complex],
-        Some(mask)
+        vec![],
+        None
     );
 
     builder.push_rect(
@@ -92,13 +79,13 @@ fn render_wr(api: &RenderApi, pipeline_id: PipelineId, txn: &mut Transaction, bu
         color: ColorF::new(0.0, 0.0, 1.0, 1.0),
         style: BorderStyle::Groove,
     };
-    let border_widths = LayoutSideOffsets::new_all_same(10.0);
+    let border_widths = LayoutSideOffsets::new_all_same(5.0);
     let border_details = BorderDetails::Normal(NormalBorder {
         top: border_side,
         right: border_side,
         bottom: border_side,
         left: border_side,
-        radius: BorderRadius::uniform(20.0),
+        radius: BorderRadius::uniform(10.0),
         do_aa: true,
     });
 

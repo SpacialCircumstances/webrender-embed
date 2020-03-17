@@ -48,11 +48,7 @@ fn render_wr(api: &RenderApi, pipeline_id: PipelineId, txn: &mut Transaction, bu
         spatial_id,
         PrimitiveFlags::IS_BACKFACE_VISIBLE,
     );
-    let complex = ComplexClipRegion::new(
-        LayoutRect::new(LayoutPoint::new(50.0, 50.0), LayoutSize::new(100.0, 100.0)),
-        BorderRadius::uniform(20.0),
-        ClipMode::Clip
-    );
+
     let clip_id = builder.define_clip(
         &root_space_and_clip,
         content_bounds,
@@ -65,39 +61,7 @@ fn render_wr(api: &RenderApi, pipeline_id: PipelineId, txn: &mut Transaction, bu
             LayoutRect::new(LayoutPoint::new(100.0, 100.0), LayoutSize::new(100.0, 100.0)),
             SpaceAndClipInfo { spatial_id, clip_id },
         ),
-        ColorF::new(0.0, 1.0, 0.0, 1.0),
-    );
-
-    builder.push_rect(
-        &CommonItemProperties::new(
-            LayoutRect::new(LayoutPoint::new(250.0, 100.0), LayoutSize::new(100.0, 100.0)),
-            SpaceAndClipInfo { spatial_id, clip_id },
-        ),
-        ColorF::new(0.0, 1.0, 0.0, 1.0),
-    );
-    let border_side = BorderSide {
-        color: ColorF::new(0.0, 0.0, 1.0, 1.0),
-        style: BorderStyle::Groove,
-    };
-    let border_widths = LayoutSideOffsets::new_all_same(5.0);
-    let border_details = BorderDetails::Normal(NormalBorder {
-        top: border_side,
-        right: border_side,
-        bottom: border_side,
-        left: border_side,
-        radius: BorderRadius::uniform(10.0),
-        do_aa: true,
-    });
-
-    let bounds = LayoutRect::new(LayoutPoint::new(100.0, 100.0), LayoutSize::new(100.0, 100.0));
-    builder.push_border(
-        &CommonItemProperties::new(
-            bounds,
-            SpaceAndClipInfo { spatial_id, clip_id },
-        ),
-        bounds,
-        border_widths,
-        border_details,
+        ColorF::new(1.0, 1.0, 0.0, 1.0),
     );
 
     builder.pop_stacking_context();

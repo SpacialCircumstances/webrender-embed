@@ -67,7 +67,6 @@ fn render_wr(api: &RenderApi, pipeline_id: PipelineId, txn: &mut Transaction, bu
     let clip_r = LayoutRect::new(LayoutPoint::new(0.0, 0.0), LayoutSize::new(800.0, 600.0));
     let bounds = LayoutRect::new(LayoutPoint::new(0.0, 0.0), LayoutSize::new(size_x as f32, size_y as f32));
     let glyphs: Vec<GlyphInstance> = layout.iter().filter_map(|gl| {
-        let bound = gl.pixel_bounding_box()?;
         Some(GlyphInstance {
             index: gl.id().0,
             point: LayoutPoint::new(gl.position().x, gl.position().y + 100.0)
@@ -79,7 +78,7 @@ fn render_wr(api: &RenderApi, pipeline_id: PipelineId, txn: &mut Transaction, bu
             clip_r,
             SpaceAndClipInfo { spatial_id, clip_id }
         ),
-        clip_r,
+        bounds,
         &glyphs,
         font_key,
         ColorF::new(0.0, 0.0, 1.0, 1.0),

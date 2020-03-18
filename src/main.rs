@@ -64,22 +64,22 @@ fn render_wr(api: &RenderApi, pipeline_id: PipelineId, txn: &mut Transaction, bu
     let layout: Vec<PositionedGlyph> = font.layout(text, Scale::uniform(100.0), Point { x: 0.0, y: 0.0 }).collect();
     let (size_x, size_y) = layout.iter().filter_map(|l| l.pixel_bounding_box()).fold((0, 0), |(x, y), g| (x + g.width(), max(y, g.height())));
     println!("X: {} Y: {}", size_x, size_y);
-    let bounds = LayoutRect::new(LayoutPoint::new(100.0, 100.0), LayoutSize::new(size_x as f32, size_y as f32));
+    let clip_r = LayoutRect::new(LayoutPoint::new(0.0, 0.0), LayoutSize::new(800.0, 600.0));
+    let bounds = LayoutRect::new(LayoutPoint::new(0.0, 0.0), LayoutSize::new(size_x as f32, size_y as f32));
     let glyphs: Vec<GlyphInstance> = layout.iter().filter_map(|gl| {
         let bound = gl.pixel_bounding_box()?;
-        println!("Glyph ID: {}", gl.id().0);
         Some(GlyphInstance {
             index: gl.id().0,
-            point: LayoutPoint::new(bound.width() as f32, bound.height() as f32)
+            point: LayoutPoint::new(gl.position().x, gl.position().y + 100.0)
         })
     }).collect();
 
     builder.push_text(
         &CommonItemProperties::new(
-            LayoutRect::new(LayoutPoint::new(0.0, 0.0), LayoutSize::new(800.0, 600.0)),
+            clip_r,
             SpaceAndClipInfo { spatial_id, clip_id }
         ),
-        bounds,
+        clip_r,
         &glyphs,
         font_key,
         ColorF::new(0.0, 0.0, 1.0, 1.0),

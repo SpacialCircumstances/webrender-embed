@@ -1285,6 +1285,7 @@ version = "0.1.0"
 dependencies = [
  "gleam",
  "glutin",
+ "rusttype 0.8.2",
  "webrender",
 ]
 

@@ -1,5 +1,5 @@
 use webrender::{Renderer, RendererOptions};
-use webrender::api::{ColorF, RenderNotifier, GlyphInstance, RenderApi, DocumentId, FontInstanceKey, DisplayListBuilder, Transaction, Epoch, PipelineId, CommonItemProperties, SpaceAndClipInfo, PrimitiveFlags, ImageDescriptor, ImageData, ImageFormat, ImageDescriptorFlags, ComplexClipRegion, BorderRadius, ClipMode, BorderStyle, BorderDetails, ImageMask, BorderSide, NormalBorder};
+use webrender::api::{ColorF, RenderNotifier, GlyphInstance, RenderApi, GlyphOptions, DocumentId, FontInstanceKey, DisplayListBuilder, Transaction, Epoch, PipelineId, CommonItemProperties, SpaceAndClipInfo, PrimitiveFlags, ImageDescriptor, ImageData, ImageFormat, ImageDescriptorFlags, ComplexClipRegion, BorderRadius, ClipMode, BorderStyle, BorderDetails, ImageMask, BorderSide, NormalBorder};
 use webrender::api::units::{LayoutSize, DeviceIntSize, LayoutRect, LayoutPoint, LayoutSideOffsets, Au};
 use gleam::gl as opengl;
 use glutin::event::{Event, WindowEvent};
@@ -61,11 +61,13 @@ fn render_wr(api: &RenderApi, pipeline_id: PipelineId, txn: &mut Transaction, bu
     );
 
     let text = "Hello World!";
-    let layout: Vec<PositionedGlyph> = font.layout(text, Scale::uniform(1.0), Point { x: 0.0, y: 0.0 }).collect();
+    let layout: Vec<PositionedGlyph> = font.layout(text, Scale::uniform(100.0), Point { x: 0.0, y: 0.0 }).collect();
     let (size_x, size_y) = layout.iter().filter_map(|l| l.pixel_bounding_box()).fold((0, 0), |(x, y), g| (x + g.width(), max(y, g.height())));
+    println!("X: {} Y: {}", size_x, size_y);
     let bounds = LayoutRect::new(LayoutPoint::new(100.0, 100.0), LayoutSize::new(size_x as f32, size_y as f32));
     let glyphs: Vec<GlyphInstance> = layout.iter().filter_map(|gl| {
         let bound = gl.pixel_bounding_box()?;
+        println!("Glyph ID: {}", gl.id().0);
         Some(GlyphInstance {
             index: gl.id().0,
             point: LayoutPoint::new(bound.width() as f32, bound.height() as f32)
@@ -74,14 +76,14 @@ fn render_wr(api: &RenderApi, pipeline_id: PipelineId, txn: &mut Transaction, bu
 
     builder.push_text(
         &CommonItemProperties::new(
-            LayoutRect::new(LayoutPoint::new(100.0, 100.0), LayoutSize::new(100.0, 100.0)),
+            LayoutRect::new(LayoutPoint::new(0.0, 0.0), LayoutSize::new(800.0, 600.0)),
             SpaceAndClipInfo { spatial_id, clip_id }
         ),
         bounds,
         &glyphs,
         font_key,
         ColorF::new(0.0, 0.0, 1.0, 1.0),
-        None
+        Some(GlyphOptions::default())
     );
 
     builder.pop_stacking_context();
@@ -131,7 +133,7 @@ fn main() {
     font_file.read_to_end(&mut font_bytes).unwrap();
 
     txn.add_raw_font(font_key, font_bytes.clone(), 0);
-    txn.add_font_instance(font_inst_key, font_key, Au::new(600), None, None, vec![]);
+    txn.add_font_instance(font_inst_key, font_key, Au::new(6000), None, None, vec![]);
 
     let font = Font::from_bytes(&font_bytes).unwrap();
 

@@ -1,8 +1,8 @@
 use webrender::{Renderer, RendererOptions};
 use webrender::api::*;
-use webrender::api::units::{LayoutSize, DeviceIntSize, LayoutRect, LayoutPoint, Au, LayoutVector2D};
+use webrender::api::units::{LayoutSize, DeviceIntSize, LayoutRect, LayoutPoint, Au, LayoutVector2D, WorldPoint};
 use gleam::gl as opengl;
-use glutin::event::{Event, WindowEvent};
+use glutin::event::{Event, WindowEvent, DeviceEvent};
 use glutin::event_loop::{ControlFlow, EventLoop, EventLoopProxy};
 use glutin::window::WindowBuilder;
 use glutin::{ContextBuilder, GlRequest, Api};
@@ -198,9 +198,17 @@ fn main() {
                     }
                     _ => ()
                 }
-            }
+            },
+            Event::DeviceEvent { device_id: _, event: DeviceEvent::MouseWheel { delta } } => {
+                println!("Scroll: {:#?}", delta);
+                let scroll_delta = LayoutVector2D::new(0.0, -40.0);
+                txn.scroll(ScrollLocation::Delta(scroll_delta), WorldPoint::new(100.0, 100.0));
+                txn.generate_frame();
+            },
             _ => ()
         }
+
+        api.send_transaction(doc_id, txn);
 
         renderer.update();
         renderer.render(size).unwrap();

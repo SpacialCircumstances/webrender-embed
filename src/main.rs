@@ -1,6 +1,6 @@
 use webrender::{Renderer, RendererOptions};
-use webrender::api::{ColorF, RenderNotifier, GlyphInstance, RenderApi, GlyphOptions, DocumentId, FontInstanceKey, DisplayListBuilder, Transaction, Epoch, PipelineId, CommonItemProperties, SpaceAndClipInfo, PrimitiveFlags, ImageDescriptor, ImageData, ImageFormat, ImageDescriptorFlags, ComplexClipRegion, BorderRadius, ClipMode, BorderStyle, BorderDetails, ImageMask, BorderSide, NormalBorder};
-use webrender::api::units::{LayoutSize, DeviceIntSize, LayoutRect, LayoutPoint, LayoutSideOffsets, Au};
+use webrender::api::*;
+use webrender::api::units::{LayoutSize, DeviceIntSize, LayoutRect, LayoutPoint, Au};
 use gleam::gl as opengl;
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop, EventLoopProxy};

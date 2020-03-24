@@ -1,6 +1,6 @@
 use webrender::{Renderer, RendererOptions};
 use webrender::api::*;
-use webrender::api::units::{LayoutSize, DeviceIntSize, LayoutRect, LayoutPoint, Au};
+use webrender::api::units::{LayoutSize, DeviceIntSize, LayoutRect, LayoutPoint, Au, LayoutVector2D};
 use gleam::gl as opengl;
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop, EventLoopProxy};
@@ -12,6 +12,7 @@ use std::fs::File;
 use std::io::Read;
 use rusttype::{Font, Scale, Point, PositionedGlyph};
 use std::cmp::max;
+use webrender::euclid::SideOffsets2D;
 
 struct Notifier<T: 'static + Send> {
     proxy: EventLoopProxy<T>
@@ -42,49 +43,145 @@ impl<T: 'static + Send> RenderNotifier for Notifier<T> {
     }
 }
 
-fn render_wr(api: &RenderApi, pipeline_id: PipelineId, txn: &mut Transaction, builder: &mut DisplayListBuilder, font_key: FontInstanceKey, font: &Font) {
-    let content_bounds = LayoutRect::new(LayoutPoint::zero(), builder.content_size());
-    let root_space_and_clip = SpaceAndClipInfo::root_scroll(pipeline_id);
-    let spatial_id = root_space_and_clip.spatial_id;
+pub trait HandyDandyRectBuilder {
+    fn to(&self, x2: i32, y2: i32) -> LayoutRect;
+    fn by(&self, w: i32, h: i32) -> LayoutRect;
+}
 
+// Allows doing `(x, y).to(x2, y2)` or `(x, y).by(width, height)` with i32
+// values to build a f32 LayoutRect
+impl HandyDandyRectBuilder for (i32, i32) {
+    fn to(&self, x2: i32, y2: i32) -> LayoutRect {
+        LayoutRect::new(
+            LayoutPoint::new(self.0 as f32, self.1 as f32),
+            LayoutSize::new((x2 - self.0) as f32, (y2 - self.1) as f32),
+        )
+    }
+
+    fn by(&self, w: i32, h: i32) -> LayoutRect {
+        LayoutRect::new(
+            LayoutPoint::new(self.0 as f32, self.1 as f32),
+            LayoutSize::new(w as f32, h as f32),
+        )
+    }
+}
+
+fn render_wr(api: &RenderApi, pipeline_id: PipelineId, txn: &mut Transaction, builder: &mut DisplayListBuilder, font_key: FontInstanceKey, font: &Font) {
+    let root_space_and_clip = SpaceAndClipInfo::root_scroll(pipeline_id);
     builder.push_simple_stacking_context(
-        content_bounds.origin,
-        spatial_id,
+        LayoutPoint::zero(),
+        root_space_and_clip.spatial_id,
         PrimitiveFlags::IS_BACKFACE_VISIBLE,
     );
 
-    let clip_id = builder.define_clip(
+    // scrolling and clips stuff
+
+    builder.push_simple_stacking_context(
+        LayoutPoint::new(10., 10.),
+        root_space_and_clip.spatial_id,
+        PrimitiveFlags::IS_BACKFACE_VISIBLE,
+    );
+    
+    // let's make a scrollbox
+    let scrollbox = (0, 0).to(300, 400);
+
+    // set the scrolling clip
+    let space_and_clip1 = builder.define_scroll_frame(
         &root_space_and_clip,
-        content_bounds,
+        None,
+        (0, 0).by(1000, 1000),
+        scrollbox,
         vec![],
-        None
+        None,
+        ScrollSensitivity::ScriptAndInputEvents,
+        LayoutVector2D::zero(),
     );
 
-    let text = "Hello World!";
-    let layout: Vec<PositionedGlyph> = font.layout(text, Scale::uniform(100.0), Point { x: 0.0, y: 0.0 }).collect();
-    let (size_x, size_y) = layout.iter().filter_map(|l| l.pixel_bounding_box()).fold((0, 0), |(x, y), g| (x + g.width(), max(y, g.height())));
-    println!("X: {} Y: {}", size_x, size_y);
-    let clip_r = LayoutRect::new(LayoutPoint::new(0.0, 0.0), LayoutSize::new(800.0, 600.0));
-    let bounds = LayoutRect::new(LayoutPoint::new(0.0, 0.0), LayoutSize::new(size_x as f32, size_y as f32));
-    let glyphs: Vec<GlyphInstance> = layout.iter().filter_map(|gl| {
-        Some(GlyphInstance {
-            index: gl.id().0,
-            point: LayoutPoint::new(gl.position().x, gl.position().y + 100.0)
-        })
-    }).collect();
+    // now put some content into it.
+    // start with a white background
+    let mut info = CommonItemProperties::new((0, 0).to(1000, 1000), space_and_clip1);
+    info.hit_info = Some((0, 1));
+    builder.push_rect(&info, ColorF::new(1.0, 1.0, 1.0, 1.0));
 
-    builder.push_text(
-        &CommonItemProperties::new(
-            clip_r,
-            SpaceAndClipInfo { spatial_id, clip_id }
-        ),
-        bounds,
-        &glyphs,
-        font_key,
-        ColorF::new(0.0, 0.0, 1.0, 1.0),
-        Some(GlyphOptions::default())
+    // let's make a 50x50 blue square as a visual reference
+    let mut info = CommonItemProperties::new((0, 0).to(50, 50), space_and_clip1);
+    info.hit_info = Some((0, 2));
+    builder.push_rect(&info, ColorF::new(0.0, 0.0, 1.0, 1.0));
+
+    // and a 50x50 green square next to it with an offset clip
+    // to see what that looks like
+    let mut info = CommonItemProperties::new(
+        (50, 0).to(100, 50).intersection(&(60, 10).to(110, 60)).unwrap(),
+        space_and_clip1,
+    );
+    info.hit_info = Some((0, 3));
+    builder.push_rect(&info, ColorF::new(0.0, 1.0, 0.0, 1.0));
+
+    // Below the above rectangles, set up a nested scrollbox. It's still in
+    // the same stacking context, so note that the rects passed in need to
+    // be relative to the stacking context.
+    let space_and_clip2 = builder.define_scroll_frame(
+        &space_and_clip1,
+        None,
+        (0, 100).to(300, 1000),
+        (0, 100).to(200, 300),
+        vec![],
+        None,
+        ScrollSensitivity::ScriptAndInputEvents,
+        LayoutVector2D::zero(),
     );
 
+    // give it a giant gray background just to distinguish it and to easily
+    // visually identify the nested scrollbox
+    let mut info = CommonItemProperties::new(
+        (-1000, -1000).to(5000, 5000),
+        space_and_clip2,
+    );
+    info.hit_info = Some((0, 4));
+    builder.push_rect(&info, ColorF::new(0.5, 0.5, 0.5, 1.0));
+
+    // add a teal square to visualize the scrolling/clipping behaviour
+    // as you scroll the nested scrollbox
+    let mut info = CommonItemProperties::new((0, 200).to(50, 250), space_and_clip2);
+    info.hit_info = Some((0, 5));
+    builder.push_rect(&info, ColorF::new(0.0, 1.0, 1.0, 1.0));
+
+    // Add a sticky frame. It will "stick" twice while scrolling, once
+    // at a margin of 10px from the bottom, for 40 pixels of scrolling,
+    // and once at a margin of 10px from the top, for 60 pixels of
+    // scrolling.
+    let sticky_id = builder.define_sticky_frame(
+        space_and_clip2.spatial_id,
+        (50, 350).by(50, 50),
+        SideOffsets2D::new(Some(10.0), None, Some(10.0), None),
+        StickyOffsetBounds::new(-40.0, 60.0),
+        StickyOffsetBounds::new(0.0, 0.0),
+        LayoutVector2D::new(0.0, 0.0),
+    );
+
+    let mut info = CommonItemProperties::new(
+        (50, 350).by(50, 50),
+        SpaceAndClipInfo {
+            spatial_id: sticky_id,
+            clip_id: space_and_clip2.clip_id,
+        },
+    );
+    info.hit_info = Some((0, 6));
+    builder.push_rect(
+        &info,
+        ColorF::new(0.5, 0.5, 1.0, 1.0),
+    );
+
+    // just for good measure add another teal square further down and to
+    // the right, which can be scrolled into view by the user
+    let mut info = CommonItemProperties::new(
+        (250, 350).to(300, 400),
+        space_and_clip2,
+    );
+    info.hit_info = Some((0, 7));
+    builder.push_rect(&info, ColorF::new(0.0, 1.0, 1.0, 1.0));
+
+    builder.pop_stacking_context();
     builder.pop_stacking_context();
 }
 
@@ -159,13 +256,13 @@ fn main() {
                 match event {
                     WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit
-                    },
+                    }
                     WindowEvent::Resized(size) => {
                         windowed_context.resize(size)
-                    },
+                    }
                     _ => ()
                 }
-            },
+            }
             _ => ()
         }
 

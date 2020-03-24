@@ -2,7 +2,7 @@ use webrender::{Renderer, RendererOptions};
 use webrender::api::*;
 use webrender::api::units::{LayoutSize, DeviceIntSize, LayoutRect, LayoutPoint, Au, LayoutVector2D, WorldPoint};
 use gleam::gl as opengl;
-use glutin::event::{Event, WindowEvent, DeviceEvent};
+use glutin::event::{Event, WindowEvent, DeviceEvent, MouseScrollDelta};
 use glutin::event_loop::{ControlFlow, EventLoop, EventLoopProxy};
 use glutin::window::WindowBuilder;
 use glutin::{ContextBuilder, GlRequest, Api};
@@ -117,6 +117,13 @@ fn render_wr(api: &RenderApi, pipeline_id: PipelineId, txn: &mut Transaction, bu
     info.hit_info = Some((0, 3));
     builder.push_rect(&info, ColorF::new(0.0, 1.0, 0.0, 1.0));
 
+    let mut info = CommonItemProperties::new(
+        (0, 900).to(100, 1000),
+        space_and_clip1
+    );
+    info.hit_info = Some((0, 4));
+    builder.push_rect(&info, ColorF::new(1.0, 0.0, 0.0, 1.0));
+
     builder.pop_stacking_context();
     builder.pop_stacking_context();
 }
@@ -201,7 +208,10 @@ fn main() {
             },
             Event::DeviceEvent { device_id: _, event: DeviceEvent::MouseWheel { delta } } => {
                 println!("Scroll: {:#?}", delta);
-                let scroll_delta = LayoutVector2D::new(0.0, -40.0);
+                let scroll_delta = match delta {
+                    MouseScrollDelta::LineDelta(x, y) => LayoutVector2D::new(x * 20.0, y * 20.0),
+                    MouseScrollDelta::PixelDelta(pos) => LayoutVector2D::new(pos.x as f32, pos.y as f32)
+                };
                 txn.scroll(ScrollLocation::Delta(scroll_delta), WorldPoint::new(100.0, 100.0));
                 txn.generate_frame();
             },

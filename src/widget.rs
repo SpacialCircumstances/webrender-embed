@@ -22,7 +22,7 @@ struct Root {
 }
 
 impl Root {
-    fn new(child: Box<dyn Widget>) -> Self {
+    pub fn new(child: Box<dyn Widget>) -> Self {
         Root {
             child
         }
@@ -32,5 +32,23 @@ impl Root {
 impl Widget for Root {
     fn draw(&mut self, builder: &mut DisplayListBuilder, space_clip: SpaceAndClipInfo) -> () {
         self.child.draw(builder, space_clip);
+    }
+}
+
+struct Group {
+    children: Vec<Box<dyn Widget>>
+}
+
+impl Group {
+    pub fn new(children: Vec<Box<dyn Widget>>) -> Self {
+        Group {
+            children
+        }
+    }
+}
+
+impl Widget for Group {
+    fn draw(&mut self, builder: &mut DisplayListBuilder, space_clip: SpaceAndClipInfo) -> () {
+        self.children.iter_mut().for_each(|w| w.draw(builder, space_clip));
     }
 }

@@ -14,6 +14,8 @@ use rusttype::{Font, Scale, Point, PositionedGlyph};
 use std::cmp::max;
 use webrender::euclid::SideOffsets2D;
 
+mod widget;
+
 struct Notifier<T: 'static + Send> {
     proxy: EventLoopProxy<T>
 }

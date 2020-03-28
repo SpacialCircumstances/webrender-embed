@@ -52,3 +52,31 @@ impl Widget for Group {
         self.children.iter_mut().for_each(|w| w.draw(builder, space_clip));
     }
 }
+
+struct LayoutedText<'a> {
+    text: &'a str,
+    indices: Vec<Option<u32>>,
+    dimensions: Vec<Option<GlyphDimensions>>,
+    font_key: FontKey,
+    inst_key: FontInstanceKey
+}
+
+struct Label<'a> {
+    text: LayoutedText<'a>,
+    position: LayoutPoint
+}
+
+impl<'a> Label<'a> {
+    fn new(text: LayoutedText<'a>, position: LayoutPoint) -> Self {
+        Label {
+            text,
+            position
+        }
+    }
+}
+
+impl<'a> Widget for Label<'a> {
+    fn draw(&mut self, builder: &mut DisplayListBuilder, space_clip: SpaceAndClipInfo) -> () {
+        //TODO: Draw
+    }
+}

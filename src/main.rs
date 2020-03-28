@@ -16,6 +16,8 @@ use webrender::euclid::SideOffsets2D;
 
 mod widget;
 
+use widget::*;
+
 struct Notifier<T: 'static + Send> {
     proxy: EventLoopProxy<T>
 }
@@ -163,7 +165,6 @@ fn main() {
     let epoch = Epoch(0);
     let pipeline_id = PipelineId(0, 0);
     let layout_size = size.to_f32() / webrender::euclid::Scale::new(1.0);
-    let mut builder = DisplayListBuilder::new(pipeline_id, layout_size);
     let mut txn = Transaction::new();
 
     let font_key = api.generate_font_key();
@@ -176,9 +177,21 @@ fn main() {
     txn.add_raw_font(font_key, font_bytes.clone(), 0);
     txn.add_font_instance(font_inst_key, font_key, Au::new(6000), None, None, vec![]);
 
-    let font = Font::from_bytes(&font_bytes).unwrap();
+    api.send_transaction(doc_id, txn);
+    renderer.update();
 
-    render_wr(&api, pipeline_id, &mut txn, &mut builder, font_inst_key, &font);
+    let mut txn = Transaction::new();
+    let mut builder = DisplayListBuilder::new(pipeline_id, layout_size);
+
+    let red = ColorF::new(1.0, 0.0, 0.0, 1.0);
+
+    let label_text = LayoutedText::new("Test!", font_key, font_inst_key, &api);
+    let label = Label::new(label_text, LayoutPoint::new(100.0, 100.0), red);
+    let mut root = Root::new(Box::new(label));
+
+    let root_space_and_clip = SpaceAndClipInfo::root_scroll(pipeline_id);
+
+    root.draw(&mut builder, root_space_and_clip);
 
     txn.set_display_list(
         epoch,

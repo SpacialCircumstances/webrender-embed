@@ -78,7 +78,7 @@ impl<'a> LayoutedText<'a> {
         let (size_x, size_y) = dimensions.iter().fold((0.0, 0.0), |(x, y), &g| {
             let dx = (g.left + g.width) as f32 + g.advance;
             let dy = (g.top + g.height) as f32;
-            (x, y)
+            (x + dx, y + dy)
         });
 
         let size = LayoutSize::new(size_x as f32, size_y as f32);

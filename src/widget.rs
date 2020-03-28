@@ -16,3 +16,21 @@ impl Widget for Rect {
         builder.push_rect(&info, self.color);
     }
 }
+
+struct Root {
+    child: Box<dyn Widget>
+}
+
+impl Root {
+    fn new(child: Box<dyn Widget>) -> Self {
+        Root {
+            child
+        }
+    }
+}
+
+impl Widget for Root {
+    fn draw(&mut self, builder: &mut DisplayListBuilder, space_clip: SpaceAndClipInfo) -> () {
+        self.child.draw(builder, space_clip);
+    }
+}

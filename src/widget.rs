@@ -96,20 +96,26 @@ impl<'a> LayoutedText<'a> {
 
 struct Label<'a> {
     text: LayoutedText<'a>,
-    position: LayoutPoint
+    glyph_instances: Vec<GlyphInstance>,
+    position: LayoutPoint,
+    color: ColorF
 }
 
 impl<'a> Label<'a> {
-    fn new(text: LayoutedText<'a>, position: LayoutPoint) -> Self {
+    fn new(text: LayoutedText<'a>, position: LayoutPoint, color: ColorF) -> Self {
         Label {
             text,
-            position
+            position,
+            glyph_instances: Vec::new(), //TODO: Create instances
+            color
         }
     }
 }
 
 impl<'a> Widget for Label<'a> {
     fn draw(&mut self, builder: &mut DisplayListBuilder, space_clip: SpaceAndClipInfo) -> () {
-
+        let area = LayoutRect::new(self.position, self.text.size);
+        let info = CommonItemProperties::new(area, space_clip);
+        builder.push_text(&info, area, &self.glyph_instances, self.text.inst_key, self.color, Some(GlyphOptions::default()));
     }
 }

@@ -103,10 +103,28 @@ struct Label<'a> {
 
 impl<'a> Label<'a> {
     fn new(text: LayoutedText<'a>, position: LayoutPoint, color: ColorF) -> Self {
+        let glyph_instances: Vec<GlyphInstance> = text
+            .indices
+            .iter()
+            .zip(&text.dimensions)
+            .scan((0.0, 0.0), |(x, y), (index, dim)| {
+                let tx = *x;
+                let ty = *y;
+                let dx = (dim.left + dim.width) as f32 + dim.advance;
+                let dy = (dim.top + dim.height) as f32;
+                *x = tx + dx;
+                *y = ty + dy;
+
+                Some(GlyphInstance {
+                    index: *index,
+                    point: LayoutPoint::new(tx, ty)
+                })
+            }).collect();
+
         Label {
             text,
             position,
-            glyph_instances: Vec::new(), //TODO: Create instances
+            glyph_instances,
             color
         }
     }

@@ -1,11 +1,11 @@
 use webrender::api::*;
 use webrender::api::units::*;
 
-trait Widget {
+pub trait Widget {
     fn draw(&mut self, builder: &mut DisplayListBuilder, space_clip: SpaceAndClipInfo) -> ();
 }
 
-struct Rect {
+pub struct Rect {
     area: LayoutRect,
     color: ColorF
 }
@@ -26,7 +26,7 @@ impl Widget for Rect {
     }
 }
 
-struct Root {
+pub struct Root {
     child: Box<dyn Widget>
 }
 
@@ -44,7 +44,7 @@ impl Widget for Root {
     }
 }
 
-struct Group {
+pub struct Group {
     children: Vec<Box<dyn Widget>>
 }
 
@@ -62,7 +62,7 @@ impl Widget for Group {
     }
 }
 
-struct LayoutedText<'a> {
+pub struct LayoutedText<'a> {
     text: &'a str,
     indices: Vec<u32>,
     dimensions: Vec<GlyphDimensions>,
@@ -103,7 +103,7 @@ impl<'a> LayoutedText<'a> {
     }
 }
 
-struct Label<'a> {
+pub struct Label<'a> {
     text: LayoutedText<'a>,
     glyph_instances: Vec<GlyphInstance>,
     position: LayoutPoint,

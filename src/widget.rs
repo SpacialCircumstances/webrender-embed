@@ -10,6 +10,15 @@ struct Rect {
     color: ColorF
 }
 
+impl Rect {
+    pub fn new(area: LayoutRect, color: ColorF) -> Self {
+        Rect {
+            area,
+            color
+        }
+    }
+}
+
 impl Widget for Rect {
     fn draw(&mut self, builder: &mut DisplayListBuilder, space_clip: SpaceAndClipInfo) -> () {
         let info = CommonItemProperties::new(self.area, space_clip);
@@ -63,7 +72,7 @@ struct LayoutedText<'a> {
 }
 
 impl<'a> LayoutedText<'a> {
-    fn new(text: &'a str, font_key: FontKey, inst_key: FontInstanceKey, api: &RenderApi) -> Self {
+    pub fn new(text: &'a str, font_key: FontKey, inst_key: FontInstanceKey, api: &RenderApi) -> Self {
         let indices: Vec<u32> = api
             .get_glyph_indices(font_key, text)
             .iter()
@@ -102,7 +111,7 @@ struct Label<'a> {
 }
 
 impl<'a> Label<'a> {
-    fn new(text: LayoutedText<'a>, position: LayoutPoint, color: ColorF) -> Self {
+    pub fn new(text: LayoutedText<'a>, position: LayoutPoint, color: ColorF) -> Self {
         let glyph_instances: Vec<GlyphInstance> = text
             .indices
             .iter()

@@ -70,68 +70,6 @@ impl HandyDandyRectBuilder for (i32, i32) {
     }
 }
 
-fn render_wr(api: &RenderApi, pipeline_id: PipelineId, txn: &mut Transaction, builder: &mut DisplayListBuilder, font_key: FontInstanceKey, font: &Font) {
-    let root_space_and_clip = SpaceAndClipInfo::root_scroll(pipeline_id);
-    builder.push_simple_stacking_context(
-        LayoutPoint::zero(),
-        root_space_and_clip.spatial_id,
-        PrimitiveFlags::IS_BACKFACE_VISIBLE,
-    );
-
-    // scrolling and clips stuff
-
-    builder.push_simple_stacking_context(
-        LayoutPoint::new(10., 10.),
-        root_space_and_clip.spatial_id,
-        PrimitiveFlags::IS_BACKFACE_VISIBLE,
-    );
-
-    // let's make a scrollbox
-    let scrollbox = (0, 0).to(300, 400);
-
-    // set the scrolling clip
-    let space_and_clip1 = builder.define_scroll_frame(
-        &root_space_and_clip,
-        None,
-        (0, 0).by(1000, 1000),
-        scrollbox,
-        vec![],
-        None,
-        ScrollSensitivity::ScriptAndInputEvents,
-        LayoutVector2D::zero(),
-    );
-
-    // now put some content into it.
-    // start with a white background
-    let mut info = CommonItemProperties::new((0, 0).to(1000, 1000), space_and_clip1);
-    info.hit_info = Some((0, 1));
-    builder.push_rect(&info, ColorF::new(1.0, 1.0, 1.0, 1.0));
-
-    // let's make a 50x50 blue square as a visual reference
-    let mut info = CommonItemProperties::new((0, 0).to(50, 50), space_and_clip1);
-    info.hit_info = Some((0, 2));
-    builder.push_rect(&info, ColorF::new(0.0, 0.0, 1.0, 1.0));
-
-    // and a 50x50 green square next to it with an offset clip
-    // to see what that looks like
-    let mut info = CommonItemProperties::new(
-        (50, 0).to(100, 50).intersection(&(60, 10).to(110, 60)).unwrap(),
-        space_and_clip1,
-    );
-    info.hit_info = Some((0, 3));
-    builder.push_rect(&info, ColorF::new(0.0, 1.0, 0.0, 1.0));
-
-    let mut info = CommonItemProperties::new(
-        (0, 900).to(100, 1000),
-        space_and_clip1
-    );
-    info.hit_info = Some((0, 4));
-    builder.push_rect(&info, ColorF::new(1.0, 0.0, 0.0, 1.0));
-
-    builder.pop_stacking_context();
-    builder.pop_stacking_context();
-}
-
 fn main() {
     let mut el = EventLoop::new();
     let wb = WindowBuilder::new()

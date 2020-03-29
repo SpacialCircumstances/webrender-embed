@@ -86,7 +86,8 @@ impl<'a> LayoutedText<'a> {
             .collect();
 
         let (size_x, size_y) = dimensions.iter().fold((0.0, 0.0), |(x, y), &g| {
-            (x + g.advance, f32::max(y, g.height as f32))
+            let dy = (g.height + (g.height - g.top)) as f32;
+            (x + g.advance, f32::max(y, dy))
         });
 
         let size = LayoutSize::new(size_x as f32, size_y as f32);
@@ -111,6 +112,11 @@ pub struct Label<'a> {
 
 impl<'a> Label<'a> {
     pub fn new(text: LayoutedText<'a>, position: LayoutPoint, color: ColorF) -> Self {
+        let offset = text.dimensions.iter().fold(0.0, |y, &g| {
+            let dy = g.height as f32;
+            f32::max(y, dy)
+        });
+
         let glyph_instances: Vec<GlyphInstance> = text
             .indices
             .iter()
@@ -121,7 +127,7 @@ impl<'a> Label<'a> {
 
                 Some(GlyphInstance {
                     index: *index,
-                    point: LayoutPoint::new(tx, position.y + text.size.height)
+                    point: LayoutPoint::new(tx, position.y + offset)
                 })
             }).collect();
 

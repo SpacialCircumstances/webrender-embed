@@ -144,7 +144,6 @@ impl<'a> Widget for Label<'a> {
     fn draw(&mut self, builder: &mut DisplayListBuilder, space_clip: SpaceAndClipInfo) -> () {
         let area = LayoutRect::new(self.position, self.text.size);
         let info = CommonItemProperties::new(area, space_clip);
-        builder.push_rect(&info, ColorF::WHITE);
         builder.push_text(&info, area, &self.glyph_instances, self.text.inst_key, self.color, Some(GlyphOptions::default()));
     }
 }

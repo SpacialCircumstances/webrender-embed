@@ -186,8 +186,8 @@ fn main() {
     let red = ColorF::new(1.0, 0.0, 0.0, 1.0);
     let green = ColorF::new(0.0, 1.0, 0.0, 1.0);
 
-    let rect = Rect::new((0, 0).to(300, 300), green);
-    let label_text = LayoutedText::new("Test!", font_key, font_inst_key, &api);
+    let rect = Rect::new((0, 0).to(100, 100), green);
+    let label_text = LayoutedText::new("Testing...", font_key, font_inst_key, &api);
     let label = Label::new(label_text, LayoutPoint::new(100.0, 100.0), red);
     let mut container = Group::new(vec![ Box::new(rect), Box::new(label) ]);
 

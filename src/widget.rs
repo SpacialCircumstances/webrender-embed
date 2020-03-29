@@ -86,8 +86,7 @@ impl<'a> LayoutedText<'a> {
             .collect();
 
         let (size_x, size_y) = dimensions.iter().fold((0.0, 0.0), |(x, y), &g| {
-            let dy = (g.top + g.height) as f32;
-            (x + g.advance, f32::max(y, dy))
+            (x + g.advance, f32::max(y, g.height as f32))
         });
 
         let size = LayoutSize::new(size_x as f32, size_y as f32);
@@ -116,15 +115,13 @@ impl<'a> Label<'a> {
             .indices
             .iter()
             .zip(&text.dimensions)
-            .scan((position.x, position.y + text.size.height), |(x, y), (index, dim)| {
+            .scan(position.x, |x, (index, dim)| {
                 let tx = *x;
-                let ty = *y;
-                let dy = (dim.top + dim.height) as f32;
                 *x = tx + dim.advance;
 
                 Some(GlyphInstance {
                     index: *index,
-                    point: LayoutPoint::new(tx, ty)
+                    point: LayoutPoint::new(tx, position.y + text.size.height)
                 })
             }).collect();
 
@@ -141,6 +138,7 @@ impl<'a> Widget for Label<'a> {
     fn draw(&mut self, builder: &mut DisplayListBuilder, space_clip: SpaceAndClipInfo) -> () {
         let area = LayoutRect::new(self.position, self.text.size);
         let info = CommonItemProperties::new(area, space_clip);
+        builder.push_rect(&info, ColorF::WHITE);
         builder.push_text(&info, area, &self.glyph_instances, self.text.inst_key, self.color, Some(GlyphOptions::default()));
     }
 }

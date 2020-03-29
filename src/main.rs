@@ -184,14 +184,16 @@ fn main() {
     let mut builder = DisplayListBuilder::new(pipeline_id, layout_size);
 
     let red = ColorF::new(1.0, 0.0, 0.0, 1.0);
+    let green = ColorF::new(0.0, 1.0, 0.0, 1.0);
 
+    let rect = Rect::new((0, 0).to(300, 300), green);
     let label_text = LayoutedText::new("Test!", font_key, font_inst_key, &api);
     let label = Label::new(label_text, LayoutPoint::new(100.0, 100.0), red);
-    let mut root = Root::new(Box::new(label));
+    let mut container = Group::new(vec![ Box::new(rect), Box::new(label) ]);
 
     let root_space_and_clip = SpaceAndClipInfo::root_scroll(pipeline_id);
 
-    root.draw(&mut builder, root_space_and_clip);
+    container.draw(&mut builder, root_space_and_clip);
 
     txn.set_display_list(
         epoch,

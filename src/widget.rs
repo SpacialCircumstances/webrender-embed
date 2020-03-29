@@ -86,9 +86,8 @@ impl<'a> LayoutedText<'a> {
             .collect();
 
         let (size_x, size_y) = dimensions.iter().fold((0.0, 0.0), |(x, y), &g| {
-            let dx = (g.left + g.width) as f32 + g.advance;
             let dy = (g.top + g.height) as f32;
-            (x + dx, f32::max(y, dy))
+            (x + g.advance, f32::max(y, dy))
         });
 
         let size = LayoutSize::new(size_x as f32, size_y as f32);
@@ -120,9 +119,8 @@ impl<'a> Label<'a> {
             .scan((position.x, position.y + text.size.height), |(x, y), (index, dim)| {
                 let tx = *x;
                 let ty = *y;
-                let dx = (dim.left + dim.width) as f32 + dim.advance;
                 let dy = (dim.top + dim.height) as f32;
-                *x = tx + dx;
+                *x = tx + dim.advance;
 
                 Some(GlyphInstance {
                     index: *index,

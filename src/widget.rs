@@ -1,5 +1,6 @@
 use webrender::api::*;
 use webrender::api::units::*;
+use std::cmp::max;
 
 pub trait Widget {
     fn draw(&mut self, builder: &mut DisplayListBuilder, space_clip: SpaceAndClipInfo) -> ();
@@ -87,7 +88,7 @@ impl<'a> LayoutedText<'a> {
         let (size_x, size_y) = dimensions.iter().fold((0.0, 0.0), |(x, y), &g| {
             let dx = (g.left + g.width) as f32 + g.advance;
             let dy = (g.top + g.height) as f32;
-            (x + dx, y + dy)
+            (x + dx, f32::max(y, dy))
         });
 
         let size = LayoutSize::new(size_x as f32, size_y as f32);
@@ -116,13 +117,12 @@ impl<'a> Label<'a> {
             .indices
             .iter()
             .zip(&text.dimensions)
-            .scan((0.0, 0.0), |(x, y), (index, dim)| {
+            .scan((position.x, position.y + text.size.height), |(x, y), (index, dim)| {
                 let tx = *x;
                 let ty = *y;
                 let dx = (dim.left + dim.width) as f32 + dim.advance;
                 let dy = (dim.top + dim.height) as f32;
                 *x = tx + dx;
-                *y = ty + dy;
 
                 Some(GlyphInstance {
                     index: *index,

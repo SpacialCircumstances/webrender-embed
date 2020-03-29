@@ -154,22 +154,34 @@ fn main() {
                 match event {
                     WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit
-                    }
+                    },
                     WindowEvent::Resized(size) => {
                         windowed_context.resize(size)
-                    }
+                    },
+                    WindowEvent::CursorMoved { device_id: _, position, modifiers: _ } => {
+                        let point = WorldPoint::new(position.x as f32, position.y as f32);
+                        let hit = api.hit_test(doc_id, None, point, HitTestFlags::FIND_ALL);
+                        for x in hit.items {
+                            println!("Hover over item: ({}, {})", x.tag.0, x.tag.1);
+                        }
+                    },
                     _ => ()
                 }
             },
-            Event::DeviceEvent { device_id: _, event: DeviceEvent::MouseWheel { delta } } => {
-                println!("Scroll: {:#?}", delta);
-                let scroll_delta = match delta {
-                    MouseScrollDelta::LineDelta(x, y) => LayoutVector2D::new(x * 20.0, y * 20.0),
-                    MouseScrollDelta::PixelDelta(pos) => LayoutVector2D::new(pos.x as f32, pos.y as f32)
-                };
-                txn.scroll(ScrollLocation::Delta(scroll_delta), WorldPoint::new(100.0, 100.0));
-                txn.generate_frame();
-            },
+            Event::DeviceEvent { device_id: _, event } => {
+                match event {
+                    DeviceEvent::MouseWheel { delta } => {
+                        println!("Scroll: {:#?}", delta);
+                        let scroll_delta = match delta {
+                            MouseScrollDelta::LineDelta(x, y) => LayoutVector2D::new(x * 20.0, y * 20.0),
+                            MouseScrollDelta::PixelDelta(pos) => LayoutVector2D::new(pos.x as f32, pos.y as f32)
+                        };
+                        txn.scroll(ScrollLocation::Delta(scroll_delta), WorldPoint::new(100.0, 100.0));
+                        txn.generate_frame();
+                    },
+                    _ => ()
+                }
+            }
             _ => ()
         }
 

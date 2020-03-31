@@ -1,12 +1,18 @@
-pub struct Store<T> {
-    state: T
+pub struct Store<T, Msg> {
+    state: T,
+    reducer: fn(&T, Msg) -> T
 }
 
-impl<T> Store<T> {
-    pub fn new(initial: T) -> Self {
+impl<T, Msg> Store<T, Msg> {
+    pub fn new(initial: T, reducer: fn(&T, Msg) -> T) -> Self {
         Store {
-            state: initial
+            state: initial,
+            reducer
         }
+    }
+
+    pub fn update(&mut self, msg: Msg) {
+        self.state = (self.reducer)(&self.state, msg)
     }
 
     pub fn set(&mut self, value: T) {

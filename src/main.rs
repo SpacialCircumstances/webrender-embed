@@ -21,6 +21,7 @@ mod widget;
 
 use widget::*;
 use crate::text::LayoutedText;
+use crate::component::Component;
 
 struct Notifier<T: 'static + Send> {
     proxy: EventLoopProxy<T>
@@ -130,12 +131,12 @@ fn main() {
 
     let rect = Rect::new((0, 0).to(100, 100), green);
     let label_text = LayoutedText::new("Testing...", font_key, font_inst_key, &api);
-    let label = Label::new(label_text, LayoutPoint::new(100.0, 100.0), red);
-    let mut container = Group::new(vec![ Box::new(rect), Box::new(label) ]);
+    let label = StaticLabel::new(label_text, LayoutPoint::new(100.0, 100.0), red);
 
     let root_space_and_clip = SpaceAndClipInfo::root_scroll(pipeline_id);
+    let rd = WebrenderRenderData::new(root_space_and_clip);
 
-    container.draw(&mut builder, root_space_and_clip);
+    label.draw(&mut builder, &rd);
 
     txn.set_display_list(
         epoch,

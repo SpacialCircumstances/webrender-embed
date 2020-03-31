@@ -2,6 +2,7 @@ use webrender::api::*;
 use webrender::api::units::*;
 use std::cmp::max;
 use crate::text::LayoutedText;
+use crate::component::Component;
 
 pub struct WebrenderRenderData {
     space_clip: SpaceAndClipInfo
@@ -27,8 +28,8 @@ impl<'a> WebrenderUpdateContext<'a> {
     }
 }
 
-pub trait Widget {
-    fn draw(&mut self, builder: &mut DisplayListBuilder, space_clip: SpaceAndClipInfo) -> ();
+pub enum WebrenderEvent {
+
 }
 
 pub struct Rect {
@@ -45,57 +46,29 @@ impl Rect {
     }
 }
 
-impl Widget for Rect {
-    fn draw(&mut self, builder: &mut DisplayListBuilder, space_clip: SpaceAndClipInfo) -> () {
-        let info = CommonItemProperties::new(self.area, space_clip);
-        builder.push_rect(&info, self.color);
+impl<'a> Component<DisplayListBuilder, WebrenderRenderData, WebrenderUpdateContext<'a>, WebrenderEvent> for Rect {
+    fn draw(&self, ctx: &mut DisplayListBuilder, render_data: &WebrenderRenderData) {
+        let info = CommonItemProperties::new(self.area, render_data.space_clip);
+        ctx.push_rect(&info, self.color);
+    }
+
+    fn update(&mut self, _: &mut WebrenderUpdateContext<'a>) {
+
+    }
+
+    fn handle_event(&mut self, _: WebrenderEvent) {
+
     }
 }
 
-pub struct Root {
-    child: Box<dyn Widget>
-}
-
-impl Root {
-    pub fn new(child: Box<dyn Widget>) -> Self {
-        Root {
-            child
-        }
-    }
-}
-
-impl Widget for Root {
-    fn draw(&mut self, builder: &mut DisplayListBuilder, space_clip: SpaceAndClipInfo) -> () {
-        self.child.draw(builder, space_clip);
-    }
-}
-
-pub struct Group {
-    children: Vec<Box<dyn Widget>>
-}
-
-impl Group {
-    pub fn new(children: Vec<Box<dyn Widget>>) -> Self {
-        Group {
-            children
-        }
-    }
-}
-
-impl Widget for Group {
-    fn draw(&mut self, builder: &mut DisplayListBuilder, space_clip: SpaceAndClipInfo) -> () {
-        self.children.iter_mut().for_each(|w| w.draw(builder, space_clip));
-    }
-}
-
-pub struct Label<'a> {
+pub struct StaticLabel<'a> {
     text: LayoutedText<'a>,
     glyph_instances: Vec<GlyphInstance>,
     position: LayoutPoint,
     color: ColorF
 }
 
-impl<'a> Label<'a> {
+impl<'a> StaticLabel<'a> {
     pub fn new(text: LayoutedText<'a>, position: LayoutPoint, color: ColorF) -> Self {
         let offset = text.dimensions.iter().fold(0.0, |y, &g| {
             let dy = g.height as f32;
@@ -116,7 +89,7 @@ impl<'a> Label<'a> {
                 })
             }).collect();
 
-        Label {
+        StaticLabel {
             text,
             position,
             glyph_instances,
@@ -125,11 +98,18 @@ impl<'a> Label<'a> {
     }
 }
 
-impl<'a> Widget for Label<'a> {
-    fn draw(&mut self, builder: &mut DisplayListBuilder, space_clip: SpaceAndClipInfo) -> () {
+impl<'a> Component<DisplayListBuilder, WebrenderRenderData, WebrenderUpdateContext<'a>, WebrenderEvent> for StaticLabel<'a> {
+    fn draw(&self, ctx: &mut DisplayListBuilder, render_data: &WebrenderRenderData) {
         let area = LayoutRect::new(self.position, self.text.size);
-        let mut info = CommonItemProperties::new(area, space_clip);
+        let mut info = CommonItemProperties::new(area, render_data.space_clip);
         info.hit_info = Some((0, 1));
-        builder.push_text(&info, area, &self.glyph_instances, self.text.inst_key, self.color, Some(GlyphOptions::default()));
+        ctx.push_text(&info, area, &self.glyph_instances, self.text.inst_key, self.color, Some(GlyphOptions::default()));
+    }
+
+    fn update(&mut self, ctx: &mut WebrenderUpdateContext<'a>) {
+    }
+
+    fn handle_event(&mut self, event: WebrenderEvent) {
+        //TODO
     }
 }

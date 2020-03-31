@@ -3,6 +3,30 @@ use webrender::api::units::*;
 use std::cmp::max;
 use crate::text::LayoutedText;
 
+pub struct WebrenderRenderData {
+    space_clip: SpaceAndClipInfo
+}
+
+impl WebrenderRenderData {
+    pub fn new(space_clip: SpaceAndClipInfo) -> Self {
+        WebrenderRenderData {
+            space_clip
+        }
+    }
+}
+
+pub struct WebrenderUpdateContext<'a> {
+    api: &'a RenderApi
+}
+
+impl<'a> WebrenderUpdateContext<'a> {
+    pub fn new(api: &'a RenderApi) -> Self {
+        WebrenderUpdateContext {
+            api
+        }
+    }
+}
+
 pub trait Widget {
     fn draw(&mut self, builder: &mut DisplayListBuilder, space_clip: SpaceAndClipInfo) -> ();
 }

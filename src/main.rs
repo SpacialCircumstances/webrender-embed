@@ -15,10 +15,12 @@ use std::cmp::max;
 use webrender::euclid::SideOffsets2D;
 
 mod state;
+mod text;
 mod component;
 mod widget;
 
 use widget::*;
+use crate::text::LayoutedText;
 
 struct Notifier<T: 'static + Send> {
     proxy: EventLoopProxy<T>

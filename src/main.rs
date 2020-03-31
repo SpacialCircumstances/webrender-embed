@@ -14,6 +14,7 @@ use rusttype::{Font, Scale, Point, PositionedGlyph};
 use std::cmp::max;
 use webrender::euclid::SideOffsets2D;
 
+mod state;
 mod widget;
 
 use widget::*;

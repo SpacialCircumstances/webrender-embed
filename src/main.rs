@@ -15,6 +15,7 @@ use std::cmp::max;
 use webrender::euclid::SideOffsets2D;
 
 mod state;
+mod component;
 mod widget;
 
 use widget::*;

@@ -2,7 +2,7 @@ use webrender::{Renderer, RendererOptions};
 use webrender::api::*;
 use webrender::api::units::{LayoutSize, DeviceIntSize, LayoutRect, LayoutPoint, Au, LayoutVector2D, WorldPoint};
 use gleam::gl as opengl;
-use glutin::event::{Event, WindowEvent, DeviceEvent, MouseScrollDelta};
+use glutin::event::{Event, WindowEvent, DeviceEvent, MouseScrollDelta, ElementState, MouseButton};
 use glutin::event_loop::{ControlFlow, EventLoop, EventLoopProxy};
 use glutin::window::WindowBuilder;
 use glutin::{ContextBuilder, GlRequest, Api};
@@ -144,7 +144,7 @@ fn main() {
     let red = ColorF::new(1.0, 0.0, 0.0, 1.0);
     let green = ColorF::new(0.0, 1.0, 0.0, 1.0);
 
-    let state = ImmutableStore::new(0, |&s, m: Message| {
+    let mut state = ImmutableStore::new(0, |&s, m: Message| {
         match m {
             Message::Incr => s + 1
         }
@@ -175,6 +175,12 @@ fn main() {
                     },
                     WindowEvent::Resized(size) => {
                         windowed_context.resize(size)
+                    },
+                    WindowEvent::MouseInput { device_id: _, state: ElementState::Pressed, button: MouseButton::Left, modifiers: _ } => {
+                        //TODO: Update state
+                        //state.update(Message::Incr);
+                        label.update(&mut uc);
+                        draw_to_transaction(&label, &rd, pipeline_id, &mut txn, layout_size, epoch);
                     },
                     WindowEvent::CursorMoved { device_id: _, position, modifiers: _ } => {
                         let point = WorldPoint::new(position.x as f32, position.y as f32);

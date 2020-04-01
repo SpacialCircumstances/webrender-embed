@@ -32,6 +32,7 @@ impl<T, Msg> Store<T, Msg> for ImmutableStore<T, Msg> {
     fn update(&self, msg: Msg) {
         let old_state = self.state.borrow();
         let new_state = (self.reducer)(&*old_state, msg);
+        drop(old_state);
         let mut state = self.state.borrow_mut();
         *state = new_state;
     }

@@ -22,6 +22,11 @@ mod widget;
 use widget::*;
 use crate::text::LayoutedText;
 use crate::component::Component;
+use crate::state::{ImmutableStore, Store};
+
+enum Message {
+    Incr
+}
 
 struct Notifier<T: 'static + Send> {
     proxy: EventLoopProxy<T>
@@ -75,6 +80,19 @@ impl HandyDandyRectBuilder for (i32, i32) {
     }
 }
 
+fn draw_to_transaction<'a, W>(widget: &W, rd: &WebrenderRenderData, pipeline: PipelineId, txn: &mut Transaction, layout_size: LayoutSize, epoch: Epoch) where W: Component<DisplayListBuilder, WebrenderRenderData, WebrenderUpdateContext<'a>, WebrenderEvent> {
+    let mut builder = DisplayListBuilder::new(pipeline, layout_size);
+    widget.draw(&mut builder, rd);
+    txn.generate_frame();
+    txn.set_display_list(epoch,
+                         Some(ColorF::new(0.3, 0.0, 0.0, 1.0)),
+                         layout_size,
+                         builder.finalize(),
+                         true);
+    txn.set_root_pipeline(pipeline);
+
+}
+
 fn main() {
     let mut el = EventLoop::new();
     let wb = WindowBuilder::new()
@@ -123,30 +141,25 @@ fn main() {
     api.send_transaction(doc_id, txn);
     renderer.update();
 
-    let mut txn = Transaction::new();
-    let mut builder = DisplayListBuilder::new(pipeline_id, layout_size);
-
     let red = ColorF::new(1.0, 0.0, 0.0, 1.0);
     let green = ColorF::new(0.0, 1.0, 0.0, 1.0);
 
-    let rect = Rect::new((0, 0).to(100, 100), green);
-    let label_text = LayoutedText::new("Testing...", font_key, font_inst_key, &api);
-    let label = StaticLabel::new(label_text, LayoutPoint::new(100.0, 100.0), red);
+    let state = ImmutableStore::new(0, |&s, m: Message| {
+        match m {
+            Message::Incr => s + 1
+        }
+    });
+
+    let mut label = DynamicLabel::new(state.selector(|s| s.to_string()), LayoutPoint::new(0.0, 0.0), red);
 
     let root_space_and_clip = SpaceAndClipInfo::root_scroll(pipeline_id);
     let rd = WebrenderRenderData::new(root_space_and_clip);
+    let mut uc = WebrenderUpdateContext::new(&api, font_key, font_inst_key);
 
-    label.draw(&mut builder, &rd);
+    label.update(&mut uc);
 
-    txn.set_display_list(
-        epoch,
-        Some(ColorF::new(0.3, 0.0, 0.0, 1.0)),
-        layout_size,
-        builder.finalize(),
-        true,
-    );
-    txn.set_root_pipeline(pipeline_id);
-    txn.generate_frame();
+    let mut txn = Transaction::new();
+    draw_to_transaction(&label, &rd, pipeline_id, &mut txn, layout_size, epoch);
     api.send_transaction(doc_id, txn);
 
     el.run_return(|event, _target, control_flow| {

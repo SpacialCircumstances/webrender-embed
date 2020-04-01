@@ -1,6 +1,8 @@
+type Selector<'a, O> = Box<dyn Fn () -> O + 'a>;
+
 pub trait Store<T, Msg> {
     fn update(&mut self, msg: Msg);
-    fn selector<'a, F, O>(&'a self, sel: F) -> Box<dyn Fn () -> O + 'a> where F: Fn(&T) -> O, F: 'a;
+    fn selector<'a, F, O>(&'a self, sel: F) -> Selector<'a, O> where F: Fn(&T) -> O, F: 'a;
 }
 
 pub struct ImmutableStore<T, Msg> {
@@ -26,7 +28,7 @@ impl<T, Msg> Store<T, Msg> for ImmutableStore<T, Msg> {
         self.state = (self.reducer)(&self.state, msg)
     }
 
-    fn selector<'a, F, O>(&'a self, sel: F) -> Box<dyn Fn () -> O + 'a> where F: Fn(&T) -> O, F: 'a {
+    fn selector<'a, F, O>(&'a self, sel: F) -> Selector<'a, O> where F: Fn(&T) -> O, F: 'a {
         Box::new(move || sel(&self.state))
     }
 }
@@ -50,7 +52,7 @@ impl<T, Msg> Store<T, Msg> for MutableStore<T, Msg> {
         (self.reducer)(&mut self.state, msg);
     }
 
-    fn selector<'a, F, O>(&'a self, sel: F) -> Box<dyn Fn () -> O + 'a> where F: Fn(&T) -> O, F: 'a {
+    fn selector<'a, F, O>(&'a self, sel: F) -> Selector<'a, O> where F: Fn(&T) -> O, F: 'a {
         Box::new(move || sel(&self.state))
     }
 }

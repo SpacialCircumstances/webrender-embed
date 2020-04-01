@@ -177,8 +177,7 @@ fn main() {
                         windowed_context.resize(size)
                     },
                     WindowEvent::MouseInput { device_id: _, state: ElementState::Pressed, button: MouseButton::Left, modifiers: _ } => {
-                        //TODO: Update state
-                        //state.update(Message::Incr);
+                        state.update(Message::Incr);
                         label.update(&mut uc);
                         draw_to_transaction(&label, &rd, pipeline_id, &mut txn, layout_size, epoch);
                     },

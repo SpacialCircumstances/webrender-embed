@@ -66,15 +66,15 @@ impl<'a> Component<DisplayListBuilder, WebrenderRenderData, WebrenderUpdateConte
     }
 }
 
-pub struct StaticLabel<'a> {
-    text: LayoutedText<'a>,
+pub struct StaticLabel {
+    text: LayoutedText,
     glyph_instances: Vec<GlyphInstance>,
     position: LayoutPoint,
     color: ColorF
 }
 
-impl<'a> StaticLabel<'a> {
-    pub fn new(text: LayoutedText<'a>, position: LayoutPoint, color: ColorF) -> Self {
+impl StaticLabel {
+    pub fn new(text: LayoutedText, position: LayoutPoint, color: ColorF) -> Self {
         let offset = text.dimensions.iter().fold(0.0, |y, &g| {
             let dy = g.height as f32;
             f32::max(y, dy)
@@ -103,7 +103,7 @@ impl<'a> StaticLabel<'a> {
     }
 }
 
-impl<'a> Component<DisplayListBuilder, WebrenderRenderData, WebrenderUpdateContext<'a>, WebrenderEvent> for StaticLabel<'a> {
+impl Component<DisplayListBuilder, WebrenderRenderData, WebrenderUpdateContext<'_>, WebrenderEvent> for StaticLabel {
     fn draw(&self, ctx: &mut DisplayListBuilder, render_data: &WebrenderRenderData) {
         let area = LayoutRect::new(self.position, self.text.size);
         let mut info = CommonItemProperties::new(area, render_data.space_clip);
@@ -111,7 +111,7 @@ impl<'a> Component<DisplayListBuilder, WebrenderRenderData, WebrenderUpdateConte
         ctx.push_text(&info, area, &self.glyph_instances, self.text.inst_key, self.color, Some(GlyphOptions::default()));
     }
 
-    fn update(&mut self, ctx: &mut WebrenderUpdateContext<'a>) {
+    fn update(&mut self, ctx: &mut WebrenderUpdateContext<'_>) {
     }
 
     fn handle_event(&mut self, event: WebrenderEvent) {
@@ -119,16 +119,16 @@ impl<'a> Component<DisplayListBuilder, WebrenderRenderData, WebrenderUpdateConte
     }
 }
 
-pub struct DynamicLabel<'a> {
-    text_selector: Selector<'a, &'a str>,
-    text: Option<LayoutedText<'a>>,
+pub struct DynamicLabel<'a, S> where S: Into<String> {
+    text_selector: Selector<'a, S>,
+    text: Option<LayoutedText>,
     glyph_instances: Vec<GlyphInstance>,
     position: LayoutPoint,
     color: ColorF
 }
 
-impl<'a> DynamicLabel<'a> {
-    pub fn new(text_selector: Selector<'a, &'a str>, position: LayoutPoint, color: ColorF) -> Self {
+impl<'a, S> DynamicLabel<'a, S> where S: Into<String> {
+    pub fn new(text_selector: Selector<'a, S>, position: LayoutPoint, color: ColorF) -> Self {
         DynamicLabel {
             text_selector,
             position,
@@ -139,7 +139,7 @@ impl<'a> DynamicLabel<'a> {
     }
 }
 
-impl<'a, 'b> Component<DisplayListBuilder, WebrenderRenderData, WebrenderUpdateContext<'b>, WebrenderEvent> for DynamicLabel<'a> {
+impl<'a, 'b, S> Component<DisplayListBuilder, WebrenderRenderData, WebrenderUpdateContext<'b>, WebrenderEvent> for DynamicLabel<'a, S> where S: Into<String> {
     fn draw(&self, ctx: &mut DisplayListBuilder, render_data: &WebrenderRenderData) {
         let text = self.text.as_ref().unwrap();
         let area = LayoutRect::new(self.position, text.size);
@@ -149,7 +149,7 @@ impl<'a, 'b> Component<DisplayListBuilder, WebrenderRenderData, WebrenderUpdateC
     }
 
     fn update(&mut self, ctx: &mut WebrenderUpdateContext<'b>) {
-        let new_text = (self.text_selector)();
+        let new_text = (self.text_selector)().into();
 
         if let Some(old_text) = &self.text {
             if old_text.text == new_text {

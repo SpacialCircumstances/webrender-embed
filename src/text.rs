@@ -1,8 +1,8 @@
 use webrender::api::{GlyphDimensions, FontKey, FontInstanceKey, RenderApi};
 use webrender::api::units::{LayoutSize};
 
-pub struct LayoutedText<'a> {
-    pub text: &'a str,
+pub struct LayoutedText {
+    pub text: String,
     pub indices: Vec<u32>,
     pub dimensions: Vec<GlyphDimensions>,
     pub font_key: FontKey,
@@ -10,10 +10,10 @@ pub struct LayoutedText<'a> {
     pub size: LayoutSize
 }
 
-impl<'a> LayoutedText<'a> {
-    pub fn new(text: &'a str, font_key: FontKey, inst_key: FontInstanceKey, api: &RenderApi) -> Self {
+impl LayoutedText {
+    pub fn new(text: String, font_key: FontKey, inst_key: FontInstanceKey, api: &RenderApi) -> Self {
         let indices: Vec<u32> = api
-            .get_glyph_indices(font_key, text)
+            .get_glyph_indices(font_key, &text)
             .iter()
             .filter_map(|&x| x)
             .collect();

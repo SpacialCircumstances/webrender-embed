@@ -1,4 +1,4 @@
-type Selector<'a, O> = Box<dyn Fn () -> O + 'a>;
+pub type Selector<'a, O> = Box<dyn Fn () -> O + 'a>;
 
 pub trait Store<T, Msg> {
     fn update(&mut self, msg: Msg);

@@ -26,6 +26,33 @@ use crate::text::LayoutedText;
 use crate::component::Component;
 use crate::state::{ImmutableStore, Store};
 
+const VERTEX_SHADER: &str = "
+#version 330 core
+
+layout (location = 0) in vec3 Position;
+
+void main()
+{
+    gl_Position = vec4(Position, 1.0);
+}
+";
+
+const FRAGMENT_SHADER: &str = "
+#version 330 core
+
+out vec4 Color;
+
+void main()
+{
+    Color = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+}
+";
+
+enum ShaderType {
+    Vertex,
+    Fragment
+}
+
 enum Message {
     Incr
 }
@@ -95,7 +122,26 @@ fn draw_to_transaction<'a, W>(widget: &W, rd: &WebrenderRenderData, pipeline: Pi
 
 }
 
-fn setup_gl(gl: &Gl) {
+fn load_shader(gl: &Gl, shader_type: ShaderType, src: &str) -> Result<u32, String> {
+    let sh_tp = match shader_type {
+        ShaderType::Vertex => opengl::VERTEX_SHADER,
+        ShaderType::Fragment => opengl::FRAGMENT_SHADER
+    };
+    let id = gl.create_shader(sh_tp);
+    gl.shader_source(id, [src.as_bytes()].as_ref());
+    gl.compile_shader(id);
+    let mut res = [1];
+    unsafe {
+        gl.get_shader_iv(id, opengl::COMPILE_STATUS, &mut res);
+    }
+    if res[0] == 0 {
+        Err(gl.get_shader_info_log(id))
+    } else {
+        Ok(id)
+    }
+}
+
+fn setup_gl(gl: &Gl) -> Box<dyn Fn(&Gl) -> ()> {
     let vertices: Vec<f32> = vec![
         -0.5, -0.5, 0.0,
         0.5, -0.5, 0.0,
@@ -120,6 +166,21 @@ fn setup_gl(gl: &Gl) {
 
     gl.bind_vertex_array(0);
     gl.bind_buffer(opengl::ARRAY_BUFFER, 0);
+
+    let vertex_shader = load_shader(gl, ShaderType::Vertex, VERTEX_SHADER).unwrap();
+    let fragment_shader = load_shader(gl, ShaderType::Fragment, FRAGMENT_SHADER).unwrap();
+    let shader_program = gl.create_program();
+    gl.attach_shader(shader_program, vertex_shader);
+    gl.attach_shader(shader_program, fragment_shader);
+    gl.link_program(shader_program);
+
+    Box::new(move |gl| {
+        gl.use_program(shader_program);
+        gl.bind_vertex_array(vao);
+        gl.draw_arrays(opengl::TRIANGLES, 0, 3);
+        gl.bind_vertex_array(0);
+        gl.use_program(0);
+    })
 }
 
 fn main() {
@@ -191,7 +252,7 @@ fn main() {
     draw_to_transaction(&label, &rd, pipeline_id, &mut txn, layout_size, epoch);
     api.send_transaction(doc_id, txn);
 
-    setup_gl(&*gl);
+    let gl_drawing = setup_gl(&*gl);
 
     el.run_return(|event, _target, control_flow| {
         let next_frame_time = std::time::Instant::now() + std::time::Duration::from_nanos(16_666_667);
@@ -243,6 +304,8 @@ fn main() {
 
         gl.clear_color(0.0, 0.0, 1.0, 1.0);
         gl.clear(gleam::gl::COLOR_BUFFER_BIT);
+
+        gl_drawing(&*gl);
 
         renderer.update();
         renderer.render(size).unwrap();

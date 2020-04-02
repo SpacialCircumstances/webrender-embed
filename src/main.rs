@@ -2,6 +2,7 @@ use webrender::{Renderer, RendererOptions};
 use webrender::api::*;
 use webrender::api::units::{LayoutSize, DeviceIntSize, LayoutRect, LayoutPoint, Au, LayoutVector2D, WorldPoint};
 use gleam::gl as opengl;
+use gleam::gl::Gl;
 use glutin::event::{Event, WindowEvent, DeviceEvent, MouseScrollDelta, ElementState, MouseButton};
 use glutin::event_loop::{ControlFlow, EventLoop, EventLoopProxy};
 use glutin::window::WindowBuilder;
@@ -12,6 +13,7 @@ use std::fs::File;
 use std::io::Read;
 use rusttype::{Font, Scale, Point, PositionedGlyph};
 use std::cmp::max;
+use std::convert::TryInto;
 use webrender::euclid::SideOffsets2D;
 
 mod state;
@@ -93,6 +95,33 @@ fn draw_to_transaction<'a, W>(widget: &W, rd: &WebrenderRenderData, pipeline: Pi
 
 }
 
+fn setup_gl(gl: &Gl) {
+    let vertices: Vec<f32> = vec![
+        -0.5, -0.5, 0.0,
+        0.5, -0.5, 0.0,
+        0.0, 0.5, 0.0
+    ];
+
+    let vbo = *gl.gen_buffers(1).first().unwrap();
+    gl.bind_buffer(opengl::ARRAY_BUFFER, vbo);
+    unsafe {
+        let size = vertices.len() * std::mem::size_of::<f32>();
+        gl.buffer_data_untyped(opengl::ARRAY_BUFFER, size.try_into().unwrap(), vertices.as_ptr() as *const std::ffi::c_void, opengl::STATIC_DRAW);
+    }
+
+    let vao = *gl.gen_vertex_arrays(1).first().unwrap();
+    gl.bind_vertex_array(vao);
+
+    gl.enable_vertex_attrib_array(0);
+
+    let size = 3 * std::mem::size_of::<f32>() as i32;
+
+    gl.vertex_attrib_pointer(0, 3, opengl::FLOAT, false, size, 0);
+
+    gl.bind_vertex_array(0);
+    gl.bind_buffer(opengl::ARRAY_BUFFER, 0);
+}
+
 fn main() {
     let mut el = EventLoop::new();
     let wb = WindowBuilder::new()
@@ -162,6 +191,8 @@ fn main() {
     draw_to_transaction(&label, &rd, pipeline_id, &mut txn, layout_size, epoch);
     api.send_transaction(doc_id, txn);
 
+    setup_gl(&*gl);
+
     el.run_return(|event, _target, control_flow| {
         let next_frame_time = std::time::Instant::now() + std::time::Duration::from_nanos(16_666_667);
         *control_flow = ControlFlow::WaitUntil(next_frame_time);
@@ -212,6 +243,7 @@ fn main() {
 
         gl.clear_color(0.0, 0.0, 1.0, 1.0);
         gl.clear(gleam::gl::COLOR_BUFFER_BIT);
+
         renderer.update();
         renderer.render(size).unwrap();
         windowed_context.swap_buffers().ok();

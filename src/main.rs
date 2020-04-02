@@ -85,7 +85,7 @@ fn draw_to_transaction<'a, W>(widget: &W, rd: &WebrenderRenderData, pipeline: Pi
     widget.draw(&mut builder, rd);
     txn.generate_frame();
     txn.set_display_list(epoch,
-                         Some(ColorF::new(0.3, 0.0, 0.0, 1.0)),
+                         None,
                          layout_size,
                          builder.finalize(),
                          true);
@@ -114,7 +114,7 @@ fn main() {
 
     let notifier = Notifier::new(&el);
     let options = RendererOptions {
-        clear_color: Some(ColorF::new(0.3, 0.0, 0.0, 1.0)),
+        clear_color: None,
         ..RendererOptions::default()
     };
     let size = DeviceIntSize::new(800, 600);
@@ -210,6 +210,8 @@ fn main() {
 
         api.send_transaction(doc_id, txn);
 
+        gl.clear_color(0.0, 0.0, 1.0, 1.0);
+        gl.clear(gleam::gl::COLOR_BUFFER_BIT);
         renderer.update();
         renderer.render(size).unwrap();
         windowed_context.swap_buffers().ok();

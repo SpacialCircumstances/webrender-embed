@@ -25,7 +25,7 @@ use widget::*;
 use crate::text::LayoutedText;
 use crate::component::Component;
 use crate::state::{ImmutableStore, Store};
-use image::GenericImageView;
+use image::{DynamicImage, GenericImageView};
 
 const VERTEX_SHADER: &str = "
 #version 330 core
@@ -225,8 +225,21 @@ fn main() {
     let image = image::load(image_reader, image::ImageFormat::Png)
         .expect("Error loading image");
 
-    let img_descr = ImageDescriptor::new(image.width() as i32, image.height() as i32, ImageFormat::BGRA8, ImageDescriptorFlags::IS_OPAQUE);
-    let img_data = ImageData::new(image.to_bytes());
+    let height = image.height();
+    let width = image.width();
+
+    let img_and_fmt = match image {
+        DynamicImage::ImageLuma8(img) => Ok((img.into_raw(), ImageFormat::R8)),
+        DynamicImage::ImageRgba8(img) => Ok((img.into_raw(), ImageFormat::RGBA8)),
+        DynamicImage::ImageBgra8(img) => Ok((img.into_raw(), ImageFormat::BGRA8)),
+        _ => Err("Unsupported image format")
+    };
+
+
+    let (data, img_fmt) = img_and_fmt.expect("Error decoding image");
+
+    let img_descr = ImageDescriptor::new(width as i32, height as i32, img_fmt, ImageDescriptorFlags::IS_OPAQUE);
+    let img_data = ImageData::new(data);
     txn.add_image(image_key, img_descr, img_data, None);
 
     let font_key = api.generate_font_key();

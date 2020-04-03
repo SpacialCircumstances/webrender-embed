@@ -5,16 +5,11 @@ use gleam::gl as opengl;
 use gleam::gl::Gl;
 use glutin::event::{Event, WindowEvent, DeviceEvent, MouseScrollDelta, ElementState, MouseButton};
 use glutin::event_loop::{ControlFlow, EventLoop, EventLoopProxy};
-use glutin::window::WindowBuilder;
-use glutin::{ContextBuilder, GlRequest, Api};
-use glutin::dpi::{LogicalSize, PhysicalSize};
+use glutin::dpi::LogicalSize;
 use glutin::platform::desktop::EventLoopExtDesktop;
 use std::fs::File;
 use std::io::Read;
-use rusttype::{Font, Scale, Point, PositionedGlyph};
-use std::cmp::max;
 use std::convert::TryInto;
-use webrender::euclid::SideOffsets2D;
 
 mod state;
 mod text;
@@ -22,7 +17,6 @@ mod component;
 mod widget;
 
 use widget::*;
-use crate::text::LayoutedText;
 use crate::component::Component;
 use crate::state::{ImmutableStore, Store};
 use luminance_glutin::GlutinSurface;
@@ -51,7 +45,7 @@ void main()
 
 enum ShaderType {
     Vertex,
-    Fragment
+    Fragment,
 }
 
 enum Message {
@@ -120,10 +114,9 @@ fn draw_to_transaction<'a, W>(widget: &W, rd: &WebrenderRenderData, pipeline: Pi
                          builder.finalize(),
                          true);
     txn.set_root_pipeline(pipeline);
-
 }
 
-fn load_shader(gl: &Gl, shader_type: ShaderType, src: &str) -> Result<u32, String> {
+fn load_shader(gl: &dyn Gl, shader_type: ShaderType, src: &str) -> Result<u32, String> {
     let sh_tp = match shader_type {
         ShaderType::Vertex => opengl::VERTEX_SHADER,
         ShaderType::Fragment => opengl::FRAGMENT_SHADER
@@ -142,7 +135,7 @@ fn load_shader(gl: &Gl, shader_type: ShaderType, src: &str) -> Result<u32, Strin
     }
 }
 
-fn setup_gl(gl: &Gl) -> Box<dyn Fn(&Gl) -> ()> {
+fn setup_gl(gl: &dyn Gl) -> Box<dyn Fn(&dyn Gl) -> ()> {
     let vertices: Vec<f32> = vec![
         -0.5, -0.5, 0.0,
         0.5, -0.5, 0.0,
@@ -151,10 +144,9 @@ fn setup_gl(gl: &Gl) -> Box<dyn Fn(&Gl) -> ()> {
 
     let vbo = *gl.gen_buffers(1).first().unwrap();
     gl.bind_buffer(opengl::ARRAY_BUFFER, vbo);
-    unsafe {
-        let size = vertices.len() * std::mem::size_of::<f32>();
-        gl.buffer_data_untyped(opengl::ARRAY_BUFFER, size.try_into().unwrap(), vertices.as_ptr() as *const std::ffi::c_void, opengl::STATIC_DRAW);
-    }
+
+    let size = vertices.len() * std::mem::size_of::<f32>();
+    gl.buffer_data_untyped(opengl::ARRAY_BUFFER, size.try_into().unwrap(), vertices.as_ptr() as *const std::ffi::c_void, opengl::STATIC_DRAW);
 
     let vao = *gl.gen_vertex_arrays(1).first().unwrap();
     gl.bind_vertex_array(vao);
@@ -235,9 +227,8 @@ fn main() {
     renderer.update();
 
     let red = ColorF::new(1.0, 0.0, 0.0, 1.0);
-    let green = ColorF::new(0.0, 1.0, 0.0, 1.0);
 
-    let mut state = ImmutableStore::new(0, |&s, m: Message| {
+    let state = ImmutableStore::new(0, |&s, m: Message| {
         match m {
             Message::Incr => s + 1
         }
@@ -267,25 +258,25 @@ fn main() {
                 match event {
                     WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit
-                    },
+                    }
                     WindowEvent::Resized(size) => {
                         windowed_context.resize(size)
-                    },
+                    }
                     WindowEvent::MouseInput { device_id: _, state: ElementState::Pressed, button: MouseButton::Left, modifiers: _ } => {
                         state.update(Message::Incr);
                         label.update(&mut uc);
                         draw_to_transaction(&label, &rd, pipeline_id, &mut txn, layout_size, epoch);
-                    },
+                    }
                     WindowEvent::CursorMoved { device_id: _, position, modifiers: _ } => {
                         let point = WorldPoint::new(position.x as f32, position.y as f32);
                         let hit = api.hit_test(doc_id, None, point, HitTestFlags::FIND_ALL);
                         for x in hit.items {
                             println!("Hover over item: ({}, {})", x.tag.0, x.tag.1);
                         }
-                    },
+                    }
                     _ => ()
                 }
-            },
+            }
             Event::DeviceEvent { device_id: _, event } => {
                 match event {
                     DeviceEvent::MouseWheel { delta } => {
@@ -296,7 +287,7 @@ fn main() {
                         };
                         txn.scroll(ScrollLocation::Delta(scroll_delta), WorldPoint::new(100.0, 100.0));
                         txn.generate_frame();
-                    },
+                    }
                     _ => ()
                 }
             }

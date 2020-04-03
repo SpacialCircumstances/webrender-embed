@@ -1,8 +1,6 @@
-use std::cell::{Cell, RefCell};
-use std::borrow::Borrow;
-use std::ops::Deref;
+use std::cell::RefCell;
 
-pub type Selector<'a, O> = Box<dyn Fn () -> O + 'a>;
+pub type Selector<'a, O> = Box<dyn Fn() -> O + 'a>;
 
 pub trait Store<T, Msg> {
     fn update(&self, msg: Msg);
@@ -11,14 +9,14 @@ pub trait Store<T, Msg> {
 
 pub struct ImmutableStore<T, Msg> {
     state: RefCell<T>,
-    reducer: fn(&T, Msg) -> T
+    reducer: fn(&T, Msg) -> T,
 }
 
 impl<T, Msg> ImmutableStore<T, Msg> {
     pub fn new(initial: T, reducer: fn(&T, Msg) -> T) -> Self {
         ImmutableStore {
             state: RefCell::new(initial),
-            reducer
+            reducer,
         }
     }
 
@@ -44,14 +42,14 @@ impl<T, Msg> Store<T, Msg> for ImmutableStore<T, Msg> {
 
 pub struct MutableStore<T, Msg> {
     state: RefCell<T>,
-    reducer: fn(&mut T, Msg)
+    reducer: fn(&mut T, Msg),
 }
 
 impl<T, Msg> MutableStore<T, Msg> {
     pub fn new(initial: T, reducer: fn(&mut T, Msg)) -> Self {
         MutableStore {
             state: RefCell::new(initial),
-            reducer
+            reducer,
         }
     }
 }

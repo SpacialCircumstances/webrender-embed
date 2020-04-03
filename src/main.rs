@@ -259,6 +259,8 @@ fn main() {
             _ => ()
         }
 
+        //It turns out that luminance internally caches the graphics state.
+        //So using it in parallel with webrender messes up that cache and makes drawing impossible.
         surface
             .pipeline_builder()
             .pipeline(&backbuffer,

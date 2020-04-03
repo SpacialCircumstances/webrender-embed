@@ -116,66 +116,6 @@ fn draw_to_transaction<'a, W>(widget: &W, rd: &WebrenderRenderData, pipeline: Pi
     txn.set_root_pipeline(pipeline);
 }
 
-fn load_shader(gl: &dyn Gl, shader_type: ShaderType, src: &str) -> Result<u32, String> {
-    let sh_tp = match shader_type {
-        ShaderType::Vertex => opengl::VERTEX_SHADER,
-        ShaderType::Fragment => opengl::FRAGMENT_SHADER
-    };
-    let id = gl.create_shader(sh_tp);
-    gl.shader_source(id, [src.as_bytes()].as_ref());
-    gl.compile_shader(id);
-    let mut res = [1];
-    unsafe {
-        gl.get_shader_iv(id, opengl::COMPILE_STATUS, &mut res);
-    }
-    if res[0] == 0 {
-        Err(gl.get_shader_info_log(id))
-    } else {
-        Ok(id)
-    }
-}
-
-fn setup_gl(gl: &dyn Gl) -> Box<dyn Fn(&dyn Gl) -> ()> {
-    let vertices: Vec<f32> = vec![
-        -0.5, -0.5, 0.0,
-        0.5, -0.5, 0.0,
-        0.0, 0.5, 0.0
-    ];
-
-    let vbo = *gl.gen_buffers(1).first().unwrap();
-    gl.bind_buffer(opengl::ARRAY_BUFFER, vbo);
-
-    let size = vertices.len() * std::mem::size_of::<f32>();
-    gl.buffer_data_untyped(opengl::ARRAY_BUFFER, size.try_into().unwrap(), vertices.as_ptr() as *const std::ffi::c_void, opengl::STATIC_DRAW);
-
-    let vao = *gl.gen_vertex_arrays(1).first().unwrap();
-    gl.bind_vertex_array(vao);
-
-    gl.enable_vertex_attrib_array(0);
-
-    let size = 3 * std::mem::size_of::<f32>() as i32;
-
-    gl.vertex_attrib_pointer(0, 3, opengl::FLOAT, false, size, 0);
-
-    gl.bind_vertex_array(0);
-    gl.bind_buffer(opengl::ARRAY_BUFFER, 0);
-
-    let vertex_shader = load_shader(gl, ShaderType::Vertex, VERTEX_SHADER).unwrap();
-    let fragment_shader = load_shader(gl, ShaderType::Fragment, FRAGMENT_SHADER).unwrap();
-    let shader_program = gl.create_program();
-    gl.attach_shader(shader_program, vertex_shader);
-    gl.attach_shader(shader_program, fragment_shader);
-    gl.link_program(shader_program);
-
-    Box::new(move |gl| {
-        gl.use_program(shader_program);
-        gl.bind_vertex_array(vao);
-        gl.draw_arrays(opengl::TRIANGLES, 0, 3);
-        gl.bind_vertex_array(0);
-        gl.use_program(0);
-    })
-}
-
 fn main() {
     let (mut surface, mut el) = GlutinSurface::from_builders(
         |win_builder| {
@@ -244,8 +184,6 @@ fn main() {
     draw_to_transaction(&label, &rd, pipeline_id, &mut txn, layout_size, epoch);
     api.send_transaction(doc_id, txn);
 
-    let gl_drawing = setup_gl(&*gl);
-
     el.run_return(|event, _target, control_flow| {
         let next_frame_time = std::time::Instant::now() + std::time::Duration::from_nanos(16_666_667);
         *control_flow = ControlFlow::WaitUntil(next_frame_time);
@@ -296,8 +234,6 @@ fn main() {
 
         gl.clear_color(0.0, 0.0, 1.0, 1.0);
         gl.clear(gleam::gl::COLOR_BUFFER_BIT);
-
-        gl_drawing(&*gl);
 
         renderer.update();
         renderer.render(size).unwrap();

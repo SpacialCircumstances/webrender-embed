@@ -1350,7 +1350,6 @@ dependencies = [
  "luminance-derive",
  "luminance-glutin",
  "luminance-windowing",
- "rusttype 0.8.2",
  "webrender",
 ]
 

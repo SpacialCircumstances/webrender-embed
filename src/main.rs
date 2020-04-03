@@ -189,11 +189,9 @@ fn main() {
     ).expect("Glutin surface creation");
 
 
-    let windowed_context = surface.ctx;
-
     let gl = unsafe {
         opengl::GlFns::load_with(
-            |symbol| windowed_context.get_proc_address(symbol) as *const _
+            |symbol| surface.ctx.get_proc_address(symbol) as *const _
         )
     };
 
@@ -260,7 +258,7 @@ fn main() {
                         *control_flow = ControlFlow::Exit
                     }
                     WindowEvent::Resized(size) => {
-                        windowed_context.resize(size)
+                        surface.ctx.resize(size)
                     }
                     WindowEvent::MouseInput { device_id: _, state: ElementState::Pressed, button: MouseButton::Left, modifiers: _ } => {
                         state.update(Message::Incr);
@@ -303,7 +301,8 @@ fn main() {
 
         renderer.update();
         renderer.render(size).unwrap();
-        windowed_context.swap_buffers().ok();
+
+        surface.swap_buffers();
     });
 
     renderer.deinit();

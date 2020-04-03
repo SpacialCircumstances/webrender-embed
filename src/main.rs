@@ -20,6 +20,8 @@ use widget::*;
 use crate::component::Component;
 use crate::state::{ImmutableStore, Store};
 use luminance_glutin::GlutinSurface;
+use luminance::context::GraphicsContext;
+use luminance::pipeline::PipelineState;
 
 const VERTEX_SHADER: &str = "
 #version 330 core
@@ -165,6 +167,7 @@ fn main() {
     renderer.update();
 
     let red = ColorF::new(1.0, 0.0, 0.0, 1.0);
+    let blue = ColorF::new(0.0, 0.0, 1.0, 1.0);
 
     let state = ImmutableStore::new(0, |&s, m: Message| {
         match m {
@@ -183,6 +186,8 @@ fn main() {
     let mut txn = Transaction::new();
     draw_to_transaction(&label, &rd, pipeline_id, &mut txn, layout_size, epoch);
     api.send_transaction(doc_id, txn);
+
+    let backbuffer = surface.back_buffer().expect("Error loading backbuffer");
 
     el.run_return(|event, _target, control_flow| {
         let next_frame_time = std::time::Instant::now() + std::time::Duration::from_nanos(16_666_667);
@@ -232,8 +237,11 @@ fn main() {
 
         api.send_transaction(doc_id, txn);
 
-        gl.clear_color(0.0, 0.0, 1.0, 1.0);
-        gl.clear(gleam::gl::COLOR_BUFFER_BIT);
+        surface
+            .pipeline_builder()
+            .pipeline(&backbuffer,
+                      &PipelineState::default().set_clear_color(blue.to_array()),
+                      |_, _| ());
 
         renderer.update();
         renderer.render(size).unwrap();

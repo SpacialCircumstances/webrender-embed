@@ -1,3 +1,8 @@
+mod state;
+mod text;
+mod component;
+mod widget;
+
 use webrender::{Renderer, RendererOptions};
 use webrender::api::*;
 use webrender::api::units::{LayoutSize, DeviceIntSize, LayoutRect, LayoutPoint, Au, LayoutVector2D, WorldPoint};
@@ -10,45 +15,51 @@ use glutin::platform::desktop::EventLoopExtDesktop;
 use std::fs::File;
 use std::io::Read;
 use std::convert::TryInto;
-
-mod state;
-mod text;
-mod component;
-mod widget;
-
 use widget::*;
 use crate::component::Component;
 use crate::state::{ImmutableStore, Store};
 use luminance_glutin::GlutinSurface;
 use luminance::context::GraphicsContext;
 use luminance::pipeline::PipelineState;
+use luminance_derive::{Semantics, Vertex};
+use luminance::shader::program::Program;
+use luminance::render_state::RenderState;
+use luminance::tess::{Mode, TessBuilder, TessSliceIndex as _};
 
-const VERTEX_SHADER: &str = "
-#version 330 core
+const VERTEX_SHADER: &str = include_str!("vs.glsl");
 
-layout (location = 0) in vec3 Position;
+const FRAGMENT_SHADER: &str = include_str!("fs.glsl");
 
-void main()
-{
-    gl_Position = vec4(Position, 1.0);
+#[derive(Copy, Clone, Debug, Semantics)]
+pub enum VertexSemantics {
+    #[sem(name = "position", repr = "[f32; 2]", wrapper = "VertexPosition")]
+    Position,
+    #[sem(name = "color", repr = "[u8; 3]", wrapper = "VertexRGB")]
+    Color,
 }
-";
 
-const FRAGMENT_SHADER: &str = "
-#version 330 core
-
-out vec4 Color;
-
-void main()
-{
-    Color = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+#[derive(Vertex)]
+#[vertex(sem = "VertexSemantics")]
+pub struct Vertex {
+    position: VertexPosition,
+    #[vertex(normalized = "true")]
+    color: VertexRGB,
 }
-";
 
-enum ShaderType {
-    Vertex,
-    Fragment,
-}
+const VERTICES: [Vertex; 3] = [
+    Vertex {
+        position: VertexPosition::new([-0.5, -0.5]),
+        color: VertexRGB::new([255, 0, 0]),
+    },
+    Vertex {
+        position: VertexPosition::new([0.5, -0.5]),
+        color: VertexRGB::new([0, 255, 0]),
+    },
+    Vertex {
+        position: VertexPosition::new([0., 0.5]),
+        color: VertexRGB::new([0, 0, 255]),
+    },
+];
 
 enum Message {
     Incr
@@ -143,7 +154,7 @@ fn main() {
         ..RendererOptions::default()
     };
     let size = DeviceIntSize::new(800, 600);
-    let (mut renderer, sender) = Renderer::new(gl, Box::new(notifier), options, None, size).unwrap();
+    let (mut renderer, sender) = Renderer::new(gl.clone(), Box::new(notifier), options, None, size).unwrap();
 
     let api = sender.create_api();
     let doc_id = api.add_document(size, 0);
@@ -188,6 +199,19 @@ fn main() {
     api.send_transaction(doc_id, txn);
 
     let backbuffer = surface.back_buffer().expect("Error loading backbuffer");
+
+    let triangle = TessBuilder::new(&mut surface)
+        .add_vertices(VERTICES)
+        .set_mode(Mode::Triangle)
+        .build()
+        .unwrap();
+
+    let program = Program::from_strings(None, VERTEX_SHADER, None, FRAGMENT_SHADER).unwrap();
+    for warn in &program.warnings {
+        println!("{}", warn);
+    }
+
+    let program: Program<VertexSemantics, (), ()> = program.ignore_warnings();
 
     el.run_return(|event, _target, control_flow| {
         let next_frame_time = std::time::Instant::now() + std::time::Duration::from_nanos(16_666_667);
@@ -235,13 +259,19 @@ fn main() {
             _ => ()
         }
 
-        api.send_transaction(doc_id, txn);
-
         surface
             .pipeline_builder()
             .pipeline(&backbuffer,
                       &PipelineState::default().set_clear_color(blue.to_array()),
-                      |_, _| ());
+                      |_, mut sh| {
+                          sh.shade(&program, |_, mut rend| {
+                              rend.render(&RenderState::default(), |mut tess| {
+                                  tess.render(triangle.slice(..))
+                              })
+                          })
+                      });
+
+        api.send_transaction(doc_id, txn);
 
         renderer.update();
         renderer.render(size).unwrap();

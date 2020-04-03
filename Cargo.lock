@@ -474,9 +474,9 @@ dependencies = [
 
 [[package]]
 name = "glutin"
-version = "0.24.0"
+version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "611023dea5047f3e9047aecb9e361852dcfd0881129daf5d110106ca2b14f3f3"
+checksum = "cf22d4e90c55d9be9f2ad52410e7a2c0d7e9c99d93a13df73a672e7ef4e8c7f7"
 dependencies = [
  "android_glue",
  "cgl",
@@ -657,6 +657,18 @@ dependencies = [
  "proc-macro2 1.0.9",
  "quote 1.0.3",
  "syn",
+]
+
+[[package]]
+name = "luminance-glutin"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e7e65f331a3c11ca5a893480fb030eb72b609cf709b305ac41e5e5e3ed7c182"
+dependencies = [
+ "gl",
+ "glutin",
+ "luminance",
+ "luminance-windowing",
 ]
 
 [[package]]
@@ -1336,6 +1348,7 @@ dependencies = [
  "glutin",
  "luminance",
  "luminance-derive",
+ "luminance-glutin",
  "luminance-windowing",
  "rusttype 0.8.2",
  "webrender",
@@ -1417,9 +1430,9 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
 name = "winit"
-version = "0.22.0"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02e9092b71b48ad6a0d98835a786308d10760cc09369d02e4a166608327f1f26"
+checksum = "65a5c1a5ef76ac31cc97ad29489acdbed2178f3fc12ca00ee6cb11d60adb5a3a"
 dependencies = [
  "android_glue",
  "bitflags",

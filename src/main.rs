@@ -7,7 +7,7 @@ use glutin::event::{Event, WindowEvent, DeviceEvent, MouseScrollDelta, ElementSt
 use glutin::event_loop::{ControlFlow, EventLoop, EventLoopProxy};
 use glutin::window::WindowBuilder;
 use glutin::{ContextBuilder, GlRequest, Api};
-use glutin::dpi::LogicalSize;
+use glutin::dpi::{LogicalSize, PhysicalSize};
 use glutin::platform::desktop::EventLoopExtDesktop;
 use std::fs::File;
 use std::io::Read;
@@ -25,6 +25,7 @@ use widget::*;
 use crate::text::LayoutedText;
 use crate::component::Component;
 use crate::state::{ImmutableStore, Store};
+use luminance_glutin::GlutinSurface;
 
 const VERTEX_SHADER: &str = "
 #version 330 core
@@ -184,17 +185,19 @@ fn setup_gl(gl: &Gl) -> Box<dyn Fn(&Gl) -> ()> {
 }
 
 fn main() {
-    let mut el = EventLoop::new();
-    let wb = WindowBuilder::new()
-        .with_title("Embedded webrender")
-        .with_inner_size(LogicalSize::new(800, 600));
+    let (mut surface, mut el) = GlutinSurface::from_builders(
+        |win_builder| {
+            win_builder
+                .with_title("Embedded webrender")
+                .with_inner_size(LogicalSize::new(800, 600))
+        },
+        |ctx_builder| {
+            ctx_builder.with_double_buffer(Some(true))
+        },
+    ).expect("Glutin surface creation");
 
-    let windowed_context = ContextBuilder::new()
-        .with_gl(GlRequest::Specific(Api::OpenGl, (3, 3)))
-        .build_windowed(wb, &el)
-        .unwrap();
 
-    let windowed_context = unsafe { windowed_context.make_current().unwrap() };
+    let windowed_context = surface.ctx;
 
     let gl = unsafe {
         opengl::GlFns::load_with(

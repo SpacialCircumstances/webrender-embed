@@ -10,7 +10,7 @@ use glutin::{ContextBuilder, GlRequest, Api};
 use glutin::dpi::LogicalSize;
 use glutin::platform::desktop::EventLoopExtDesktop;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, BufReader};
 use rusttype::{Font, Scale, Point, PositionedGlyph};
 use std::cmp::max;
 use std::convert::TryInto;
@@ -25,6 +25,7 @@ use widget::*;
 use crate::text::LayoutedText;
 use crate::component::Component;
 use crate::state::{ImmutableStore, Store};
+use image::GenericImageView;
 
 const VERTEX_SHADER: &str = "
 #version 330 core
@@ -218,6 +219,16 @@ fn main() {
     let layout_size = size.to_f32() / webrender::euclid::Scale::new(1.0);
     let mut txn = Transaction::new();
 
+    let image_key = api.generate_image_key();
+    let image_file = File::open("planet.png").unwrap();
+    let image_reader = BufReader::new(image_file);
+    let image = image::load(image_reader, image::ImageFormat::Png)
+        .expect("Error loading image");
+
+    let img_descr = ImageDescriptor::new(image.width() as i32, image.height() as i32, ImageFormat::BGRA8, ImageDescriptorFlags::IS_OPAQUE);
+    let img_data = ImageData::new(image.to_bytes());
+    txn.add_image(image_key, img_descr, img_data, None);
+
     let font_key = api.generate_font_key();
     let font_inst_key = api.generate_font_instance_key();
 
@@ -244,7 +255,7 @@ fn main() {
 
     let root_space_and_clip = SpaceAndClipInfo::root_scroll(pipeline_id);
     let rd = WebrenderRenderData::new(root_space_and_clip);
-    let mut uc = WebrenderUpdateContext::new(&api, font_key, font_inst_key);
+    let mut uc = WebrenderUpdateContext::new(&api, font_key, font_inst_key, image_key);
 
     label.update(&mut uc);
 

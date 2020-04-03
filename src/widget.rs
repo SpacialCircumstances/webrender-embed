@@ -20,15 +20,17 @@ impl WebrenderRenderData {
 pub struct WebrenderUpdateContext<'a> {
     api: &'a RenderApi,
     font: FontKey,
-    font_inst: FontInstanceKey
+    font_inst: FontInstanceKey,
+    img: ImageKey
 }
 
 impl<'a> WebrenderUpdateContext<'a> {
-    pub fn new(api: &'a RenderApi, font: FontKey, font_inst: FontInstanceKey) -> Self {
+    pub fn new(api: &'a RenderApi, font: FontKey, font_inst: FontInstanceKey, img: ImageKey) -> Self {
         WebrenderUpdateContext {
             api,
             font,
-            font_inst
+            font_inst,
+            img
         }
     }
 }

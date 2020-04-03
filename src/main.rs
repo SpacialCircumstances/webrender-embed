@@ -143,7 +143,7 @@ fn main() {
         ..RendererOptions::default()
     };
     let size = DeviceIntSize::new(800, 600);
-    let (mut renderer, sender) = Renderer::new(gl.clone(), Box::new(notifier), options, None, size).unwrap();
+    let (mut renderer, sender) = Renderer::new(gl, Box::new(notifier), options, None, size).unwrap();
 
     let api = sender.create_api();
     let doc_id = api.add_document(size, 0);

@@ -186,3 +186,34 @@ impl<'a, 'b, S> Component<DisplayListBuilder, WebrenderRenderData, WebrenderUpda
     fn handle_event(&mut self, event: WebrenderEvent) {
     }
 }
+
+pub struct ImageDisplay {
+    position: LayoutPoint,
+    size: LayoutSize,
+    img: Option<ImageKey>
+}
+
+impl ImageDisplay {
+    pub fn new(position: LayoutPoint, size: LayoutSize) -> Self {
+        ImageDisplay {
+            position,
+            size,
+            img: None
+        }
+    }
+}
+
+impl<'a> Component<DisplayListBuilder, WebrenderRenderData, WebrenderUpdateContext<'a>, WebrenderEvent> for ImageDisplay {
+    fn draw(&self, ctx: &mut DisplayListBuilder, render_data: &WebrenderRenderData) {
+        let bounds = LayoutRect::new(self.position, self.size);
+        let data = CommonItemProperties::new(bounds, render_data.space_clip);
+        ctx.push_image(&data, bounds, ImageRendering::Auto, AlphaType::Alpha, self.img.unwrap(), ColorF::WHITE);
+    }
+
+    fn update(&mut self, ctx: &mut WebrenderUpdateContext<'a>) {
+        self.img = Some(ctx.img);
+    }
+
+    fn handle_event(&mut self, event: WebrenderEvent) {
+    }
+}

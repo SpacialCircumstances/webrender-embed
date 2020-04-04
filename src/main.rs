@@ -26,6 +26,7 @@ use crate::text::LayoutedText;
 use crate::component::Component;
 use crate::state::{ImmutableStore, Store};
 use image::{DynamicImage, GenericImageView};
+use std::path::PathBuf;
 
 const VERTEX_SHADER: &str = "
 #version 330 core
@@ -245,11 +246,10 @@ fn main() {
     let font_key = api.generate_font_key();
     let font_inst_key = api.generate_font_instance_key();
 
-    let mut font_file = File::open("OpenSans-Regular.ttf").unwrap();
-    let mut font_bytes = Vec::new();
-    font_file.read_to_end(&mut font_bytes).unwrap();
-
-    txn.add_raw_font(font_key, font_bytes.clone(), 0);
+    txn.add_native_font(font_key, NativeFontHandle {
+        path: PathBuf::from("OpenSans-Regular.ttf"),
+        index: 0
+    });
     txn.add_font_instance(font_inst_key, font_key, Au::new(6000), None, None, vec![]);
 
     api.send_transaction(doc_id, txn);
@@ -270,12 +270,12 @@ fn main() {
     let rd = WebrenderRenderData::new(root_space_and_clip);
     let mut uc = WebrenderUpdateContext::new(&api, font_key, font_inst_key, image_key);
 
-    //label.update(&mut uc);
-    let mut img = ImageDisplay::new(LayoutPoint::new(200.0, 200.0), LayoutSize::new(100.0, 100.0));
-    img.update(&mut uc);
+    label.update(&mut uc);
+    //let mut img = ImageDisplay::new(LayoutPoint::new(200.0, 200.0), LayoutSize::new(100.0, 100.0));
+    //img.update(&mut uc);
 
     let mut txn = Transaction::new();
-    draw_to_transaction(&img, &rd, pipeline_id, &mut txn, layout_size, epoch);
+    draw_to_transaction(&label, &rd, pipeline_id, &mut txn, layout_size, epoch);
     api.send_transaction(doc_id, txn);
 
     let gl_drawing = setup_gl(&*gl);
@@ -297,7 +297,7 @@ fn main() {
                     WindowEvent::MouseInput { device_id: _, state: ElementState::Pressed, button: MouseButton::Left, modifiers: _ } => {
                         state.update(Message::Incr);
                         label.update(&mut uc);
-                        draw_to_transaction(&img, &rd, pipeline_id, &mut txn, layout_size, epoch);
+                        draw_to_transaction(&label, &rd, pipeline_id, &mut txn, layout_size, epoch);
                     },
                     WindowEvent::CursorMoved { device_id: _, position, modifiers: _ } => {
                         let point = WorldPoint::new(position.x as f32, position.y as f32);

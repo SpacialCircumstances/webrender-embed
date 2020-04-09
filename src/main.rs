@@ -210,12 +210,11 @@ fn main() {
         }
     });
 
-    let mut label = DynamicLabel::new(state.selector(|s| s.to_string()), LayoutPoint::new(0.0, 0.0), red);
-
     let root_space_and_clip = SpaceAndClipInfo::root_scroll(pipeline_id);
     let rd = WebrenderRenderData::new(root_space_and_clip);
     let mut uc = WebrenderUpdateContext::new(&api, font_key, font_inst_key, image_key);
 
+    let mut label = DynamicLabel::new(state.selector(|s| s.to_string()), LayoutPoint::new(0.0, 0.0), red);
     label.update(&mut uc);
     //let mut img = ImageDisplay::new(LayoutPoint::new(200.0, 200.0), LayoutSize::new(100.0, 100.0));
     //img.update(&mut uc);

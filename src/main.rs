@@ -7,14 +7,12 @@ use webrender::{Renderer, RendererOptions};
 use webrender::api::*;
 use webrender::api::units::{LayoutSize, DeviceIntSize, LayoutRect, LayoutPoint, Au, LayoutVector2D, WorldPoint};
 use gleam::gl as opengl;
-use gleam::gl::Gl;
 use glutin::event::{Event, WindowEvent, DeviceEvent, MouseScrollDelta, ElementState, MouseButton};
 use glutin::event_loop::{ControlFlow, EventLoop, EventLoopProxy};
 use glutin::dpi::LogicalSize;
 use glutin::platform::desktop::EventLoopExtDesktop;
 use std::fs::File;
 use std::io::Read;
-use std::convert::TryInto;
 use widget::*;
 use crate::component::Component;
 use crate::state::{ImmutableStore, Store};
@@ -23,10 +21,10 @@ use luminance::context::GraphicsContext;
 use luminance::pipeline::PipelineState;
 use luminance_derive::{Semantics, Vertex};
 use luminance::render_state::RenderState;
-use luminance::tess::{Mode, TessBuilder, TessSlice as _};
-use std::ops::Deref;
+use luminance::tess::{Mode, TessBuilder};
 use luminance::shader::{Program, BuiltProgram};
 use luminance::tess::SubTess;
+use luminance::backend::render_gate::RenderGate;
 
 const VERTEX_SHADER: &str = include_str!("vs.glsl");
 
@@ -264,8 +262,17 @@ fn main() {
             _ => ()
         }
 
-        //It turns out that luminance internally caches the graphics state.
-        //So using it in parallel with webrender messes up that cache and makes drawing impossible.
+        {
+            let state_ref = surface.backend().state().clone();
+            let mut state = (*state_ref).borrow_mut();
+            state.reset_cached_shader_program();
+            state.reset_cached_array_buffer();
+            state.reset_cached_element_array_buffer();
+            state.reset_cached_texture_unit();
+            state.reset_cached_vertex_array();
+            state.reset_bound_textures();
+        }
+        
         surface
             .pipeline_gate()
             .pipeline(&backbuffer,

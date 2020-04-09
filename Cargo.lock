@@ -642,12 +642,12 @@ dependencies = [
 [[package]]
 name = "luminance"
 version = "0.40.0"
-source = "git+https://github.com/SpacialCircumstances/luminance-rs.git?branch=feature/gl-state-resetting#edc983b62f9ad8c131d35c97e41a1d9b6dc1ad5d"
+source = "git+https://github.com/SpacialCircumstances/luminance-rs.git?branch=feature/gl-state-resetting#9c423365bee57a751f8226e3217e47a2e0a80d49"
 
 [[package]]
 name = "luminance-derive"
 version = "0.6.0"
-source = "git+https://github.com/SpacialCircumstances/luminance-rs.git?branch=feature/gl-state-resetting#edc983b62f9ad8c131d35c97e41a1d9b6dc1ad5d"
+source = "git+https://github.com/SpacialCircumstances/luminance-rs.git?branch=feature/gl-state-resetting#9c423365bee57a751f8226e3217e47a2e0a80d49"
 dependencies = [
  "proc-macro2 1.0.10",
  "quote 1.0.3",
@@ -657,7 +657,7 @@ dependencies = [
 [[package]]
 name = "luminance-gl"
 version = "0.14.0"
-source = "git+https://github.com/SpacialCircumstances/luminance-rs.git?branch=feature/gl-state-resetting#edc983b62f9ad8c131d35c97e41a1d9b6dc1ad5d"
+source = "git+https://github.com/SpacialCircumstances/luminance-rs.git?branch=feature/gl-state-resetting#9c423365bee57a751f8226e3217e47a2e0a80d49"
 dependencies = [
  "gl",
  "luminance",
@@ -666,7 +666,7 @@ dependencies = [
 [[package]]
 name = "luminance-glutin"
 version = "0.10.0"
-source = "git+https://github.com/SpacialCircumstances/luminance-rs.git?branch=feature/gl-state-resetting#edc983b62f9ad8c131d35c97e41a1d9b6dc1ad5d"
+source = "git+https://github.com/SpacialCircumstances/luminance-rs.git?branch=feature/gl-state-resetting#9c423365bee57a751f8226e3217e47a2e0a80d49"
 dependencies = [
  "gl",
  "glutin",
@@ -678,7 +678,7 @@ dependencies = [
 [[package]]
 name = "luminance-windowing"
 version = "0.9.0"
-source = "git+https://github.com/SpacialCircumstances/luminance-rs.git?branch=feature/gl-state-resetting#edc983b62f9ad8c131d35c97e41a1d9b6dc1ad5d"
+source = "git+https://github.com/SpacialCircumstances/luminance-rs.git?branch=feature/gl-state-resetting#9c423365bee57a751f8226e3217e47a2e0a80d49"
 dependencies = [
  "luminance",
 ]

@@ -1,59 +1,65 @@
-use webrender::{Renderer, RendererOptions};
-use webrender::api::*;
-use webrender::api::units::{LayoutSize, DeviceIntSize, LayoutRect, LayoutPoint, Au, LayoutVector2D, WorldPoint};
-use gleam::gl as opengl;
-use gleam::gl::Gl;
-use glutin::event::{Event, WindowEvent, DeviceEvent, MouseScrollDelta, ElementState, MouseButton};
-use glutin::event_loop::{ControlFlow, EventLoop, EventLoopProxy};
-use glutin::window::WindowBuilder;
-use glutin::{ContextBuilder, GlRequest, Api};
-use glutin::dpi::LogicalSize;
-use glutin::platform::desktop::EventLoopExtDesktop;
-use std::fs::File;
-use std::io::{Read, BufReader};
-use rusttype::{Font, Scale, Point, PositionedGlyph};
-use std::cmp::max;
-use std::convert::TryInto;
-use webrender::euclid::SideOffsets2D;
-
 mod state;
 mod text;
 mod component;
 mod widget;
 
+use webrender::{Renderer, RendererOptions};
+use webrender::api::*;
+use webrender::api::units::{LayoutSize, DeviceIntSize, LayoutRect, LayoutPoint, Au, LayoutVector2D, WorldPoint};
+use gleam::gl as opengl;
+use glutin::event::{Event, WindowEvent, DeviceEvent, MouseScrollDelta, ElementState, MouseButton};
+use glutin::event_loop::{ControlFlow, EventLoop, EventLoopProxy};
+use glutin::dpi::LogicalSize;
+use glutin::platform::desktop::EventLoopExtDesktop;
+use std::fs::File;
+use std::io::Read;
 use widget::*;
-use crate::text::LayoutedText;
 use crate::component::Component;
 use crate::state::{ImmutableStore, Store};
-use image::{DynamicImage, GenericImageView};
-use std::path::PathBuf;
+use luminance_glutin::GlutinSurface;
+use luminance::context::GraphicsContext;
+use luminance::pipeline::PipelineState;
+use luminance_derive::{Semantics, Vertex};
+use luminance::render_state::RenderState;
+use luminance::tess::{Mode, TessBuilder};
+use luminance::shader::{Program, BuiltProgram};
+use luminance::tess::SubTess;
+use luminance::backend::render_gate::RenderGate;
 
-const VERTEX_SHADER: &str = "
-#version 330 core
+const VERTEX_SHADER: &str = include_str!("vs.glsl");
 
-layout (location = 0) in vec3 Position;
+const FRAGMENT_SHADER: &str = include_str!("fs.glsl");
 
-void main()
-{
-    gl_Position = vec4(Position, 1.0);
+#[derive(Copy, Clone, Debug, Semantics)]
+pub enum VertexSemantics {
+    #[sem(name = "position", repr = "[f32; 2]", wrapper = "VertexPosition")]
+    Position,
+    #[sem(name = "color", repr = "[u8; 3]", wrapper = "VertexRGB")]
+    Color,
 }
-";
 
-const FRAGMENT_SHADER: &str = "
-#version 330 core
-
-out vec4 Color;
-
-void main()
-{
-    Color = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+#[derive(Vertex)]
+#[vertex(sem = "VertexSemantics")]
+pub struct Vertex {
+    position: VertexPosition,
+    #[vertex(normalized = "true")]
+    color: VertexRGB,
 }
-";
 
-enum ShaderType {
-    Vertex,
-    Fragment
-}
+const VERTICES: [Vertex; 3] = [
+    Vertex {
+        position: VertexPosition::new([-0.5, -0.5]),
+        color: VertexRGB::new([255, 0, 0]),
+    },
+    Vertex {
+        position: VertexPosition::new([0.5, -0.5]),
+        color: VertexRGB::new([0, 255, 0]),
+    },
+    Vertex {
+        position: VertexPosition::new([0., 0.5]),
+        color: VertexRGB::new([0, 0, 255]),
+    },
+];
 
 enum Message {
     Incr
@@ -121,86 +127,24 @@ fn draw_to_transaction<'a, W>(widget: &W, rd: &WebrenderRenderData, pipeline: Pi
                          builder.finalize(),
                          true);
     txn.set_root_pipeline(pipeline);
-
-}
-
-fn load_shader(gl: &Gl, shader_type: ShaderType, src: &str) -> Result<u32, String> {
-    let sh_tp = match shader_type {
-        ShaderType::Vertex => opengl::VERTEX_SHADER,
-        ShaderType::Fragment => opengl::FRAGMENT_SHADER
-    };
-    let id = gl.create_shader(sh_tp);
-    gl.shader_source(id, [src.as_bytes()].as_ref());
-    gl.compile_shader(id);
-    let mut res = [1];
-    unsafe {
-        gl.get_shader_iv(id, opengl::COMPILE_STATUS, &mut res);
-    }
-    if res[0] == 0 {
-        Err(gl.get_shader_info_log(id))
-    } else {
-        Ok(id)
-    }
-}
-
-fn setup_gl(gl: &Gl) -> Box<dyn Fn(&Gl) -> ()> {
-    let vertices: Vec<f32> = vec![
-        -0.5, -0.5, 0.0,
-        0.5, -0.5, 0.0,
-        0.0, 0.5, 0.0
-    ];
-
-    let vbo = *gl.gen_buffers(1).first().unwrap();
-    gl.bind_buffer(opengl::ARRAY_BUFFER, vbo);
-    unsafe {
-        let size = vertices.len() * std::mem::size_of::<f32>();
-        gl.buffer_data_untyped(opengl::ARRAY_BUFFER, size.try_into().unwrap(), vertices.as_ptr() as *const std::ffi::c_void, opengl::STATIC_DRAW);
-    }
-
-    let vao = *gl.gen_vertex_arrays(1).first().unwrap();
-    gl.bind_vertex_array(vao);
-
-    gl.enable_vertex_attrib_array(0);
-
-    let size = 3 * std::mem::size_of::<f32>() as i32;
-
-    gl.vertex_attrib_pointer(0, 3, opengl::FLOAT, false, size, 0);
-
-    gl.bind_vertex_array(0);
-    gl.bind_buffer(opengl::ARRAY_BUFFER, 0);
-
-    let vertex_shader = load_shader(gl, ShaderType::Vertex, VERTEX_SHADER).unwrap();
-    let fragment_shader = load_shader(gl, ShaderType::Fragment, FRAGMENT_SHADER).unwrap();
-    let shader_program = gl.create_program();
-    gl.attach_shader(shader_program, vertex_shader);
-    gl.attach_shader(shader_program, fragment_shader);
-    gl.link_program(shader_program);
-
-    Box::new(move |gl| {
-        gl.use_program(shader_program);
-        gl.bind_vertex_array(vao);
-        gl.draw_arrays(opengl::TRIANGLES, 0, 3);
-        gl.bind_vertex_array(0);
-        gl.use_program(0);
-    })
 }
 
 fn main() {
-    let mut el = EventLoop::new();
-    let wb = WindowBuilder::new()
-        .with_title("Embedded webrender")
-        .with_inner_size(LogicalSize::new(800, 600));
+    let (mut surface, mut el) = GlutinSurface::from_builders(
+        |win_builder| {
+            win_builder
+                .with_title("Embedded webrender")
+                .with_inner_size(LogicalSize::new(800, 600))
+        },
+        |ctx_builder| {
+            ctx_builder.with_double_buffer(Some(true))
+        },
+    ).expect("Glutin surface creation");
 
-    let windowed_context = ContextBuilder::new()
-        .with_gl(GlRequest::Specific(Api::OpenGl, (3, 3)))
-        .build_windowed(wb, &el)
-        .unwrap();
-
-    let windowed_context = unsafe { windowed_context.make_current().unwrap() };
 
     let gl = unsafe {
         opengl::GlFns::load_with(
-            |symbol| windowed_context.get_proc_address(symbol) as *const _
+            |symbol| surface.ctx.get_proc_address(symbol) as *const _
         )
     };
 
@@ -256,9 +200,9 @@ fn main() {
     renderer.update();
 
     let red = ColorF::new(1.0, 0.0, 0.0, 1.0);
-    let green = ColorF::new(0.0, 1.0, 0.0, 1.0);
+    let blue = ColorF::new(0.0, 0.0, 1.0, 1.0);
 
-    let mut state = ImmutableStore::new(0, |&s, m: Message| {
+    let state = ImmutableStore::new(0, |&s, m: Message| {
         match m {
             Message::Incr => s + 1
         }
@@ -278,7 +222,23 @@ fn main() {
     draw_to_transaction(&label, &rd, pipeline_id, &mut txn, layout_size, epoch);
     api.send_transaction(doc_id, txn);
 
-    let gl_drawing = setup_gl(&*gl);
+    let backbuffer = surface.back_buffer().expect("Error loading backbuffer");
+
+    let triangle = TessBuilder::new(&mut surface)
+        .unwrap()
+        .add_vertices(VERTICES)
+        .unwrap()
+        .set_mode(Mode::Triangle)
+        .unwrap()
+        .build()
+        .unwrap();
+
+    let program: BuiltProgram<_, VertexSemantics, (), ()> = Program::from_strings(&mut surface, VERTEX_SHADER, None, None, FRAGMENT_SHADER).unwrap();
+    for warn in &program.warnings {
+        println!("{}", warn);
+    }
+
+    let mut program = program.ignore_warnings();
 
     el.run_return(|event, _target, control_flow| {
         let next_frame_time = std::time::Instant::now() + std::time::Duration::from_nanos(16_666_667);
@@ -290,25 +250,25 @@ fn main() {
                 match event {
                     WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit
-                    },
+                    }
                     WindowEvent::Resized(size) => {
-                        windowed_context.resize(size)
-                    },
+                        surface.ctx.resize(size)
+                    }
                     WindowEvent::MouseInput { device_id: _, state: ElementState::Pressed, button: MouseButton::Left, modifiers: _ } => {
                         state.update(Message::Incr);
                         label.update(&mut uc);
                         draw_to_transaction(&label, &rd, pipeline_id, &mut txn, layout_size, epoch);
-                    },
+                    }
                     WindowEvent::CursorMoved { device_id: _, position, modifiers: _ } => {
                         let point = WorldPoint::new(position.x as f32, position.y as f32);
                         let hit = api.hit_test(doc_id, None, point, HitTestFlags::FIND_ALL);
                         for x in hit.items {
                             println!("Hover over item: ({}, {})", x.tag.0, x.tag.1);
                         }
-                    },
+                    }
                     _ => ()
                 }
-            },
+            }
             Event::DeviceEvent { device_id: _, event } => {
                 match event {
                     DeviceEvent::MouseWheel { delta } => {
@@ -319,23 +279,42 @@ fn main() {
                         };
                         txn.scroll(ScrollLocation::Delta(scroll_delta), WorldPoint::new(100.0, 100.0));
                         txn.generate_frame();
-                    },
+                    }
                     _ => ()
                 }
             }
             _ => ()
         }
 
+        {
+            let state_ref = surface.backend().state().clone();
+            let mut state = (*state_ref).borrow_mut();
+            state.reset_cached_shader_program();
+            state.reset_cached_array_buffer();
+            state.reset_cached_element_array_buffer();
+            state.reset_cached_texture_unit();
+            state.reset_cached_vertex_array();
+            state.reset_bound_textures();
+        }
+        
+        surface
+            .pipeline_gate()
+            .pipeline(&backbuffer,
+                      &PipelineState::default().set_clear_color(blue.to_array()),
+                      |_, mut sh| {
+                          sh.shade(&mut program, |_, _, mut rend| {
+                              rend.render(&RenderState::default(), |mut tess| {
+                                  tess.render(triangle.slice(..).unwrap())
+                              })
+                          })
+                      });
+
         api.send_transaction(doc_id, txn);
-
-        gl.clear_color(0.0, 0.0, 1.0, 1.0);
-        gl.clear(gleam::gl::COLOR_BUFFER_BIT);
-
-        gl_drawing(&*gl);
 
         renderer.update();
         renderer.render(size).unwrap();
-        windowed_context.swap_buffers().ok();
+
+        surface.swap_buffers();
     });
 
     renderer.deinit();

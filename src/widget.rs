@@ -1,6 +1,5 @@
 use webrender::api::*;
 use webrender::api::units::*;
-use std::cmp::max;
 use crate::text::LayoutedText;
 use crate::component::Component;
 use crate::state::Selector;
@@ -113,10 +112,10 @@ impl Component<DisplayListBuilder, WebrenderRenderData, WebrenderUpdateContext<'
         ctx.push_text(&info, area, &self.glyph_instances, self.text.inst_key, self.color, Some(GlyphOptions::default()));
     }
 
-    fn update(&mut self, ctx: &mut WebrenderUpdateContext<'_>) {
+    fn update(&mut self, _ctx: &mut WebrenderUpdateContext<'_>) {
     }
 
-    fn handle_event(&mut self, event: WebrenderEvent) {
+    fn handle_event(&mut self, _event: WebrenderEvent) {
         //TODO
     }
 }
@@ -183,7 +182,7 @@ impl<'a, 'b, S> Component<DisplayListBuilder, WebrenderRenderData, WebrenderUpda
         self.text = Some(text);
     }
 
-    fn handle_event(&mut self, event: WebrenderEvent) {
+    fn handle_event(&mut self, _event: WebrenderEvent) {
     }
 }
 

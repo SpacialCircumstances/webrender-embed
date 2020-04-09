@@ -22,9 +22,11 @@ use luminance_glutin::GlutinSurface;
 use luminance::context::GraphicsContext;
 use luminance::pipeline::PipelineState;
 use luminance_derive::{Semantics, Vertex};
-use luminance::shader::program::Program;
 use luminance::render_state::RenderState;
-use luminance::tess::{Mode, TessBuilder, TessSliceIndex as _};
+use luminance::tess::{Mode, TessBuilder, TessSlice as _};
+use std::ops::Deref;
+use luminance::shader::{Program, BuiltProgram};
+use luminance::tess::SubTess;
 
 const VERTEX_SHADER: &str = include_str!("vs.glsl");
 
@@ -201,17 +203,20 @@ fn main() {
     let backbuffer = surface.back_buffer().expect("Error loading backbuffer");
 
     let triangle = TessBuilder::new(&mut surface)
+        .unwrap()
         .add_vertices(VERTICES)
+        .unwrap()
         .set_mode(Mode::Triangle)
+        .unwrap()
         .build()
         .unwrap();
 
-    let program = Program::from_strings(None, VERTEX_SHADER, None, FRAGMENT_SHADER).unwrap();
+    let program: BuiltProgram<_, VertexSemantics, (), ()> = Program::from_strings(&mut surface, VERTEX_SHADER, None, None, FRAGMENT_SHADER).unwrap();
     for warn in &program.warnings {
         println!("{}", warn);
     }
 
-    let program: Program<VertexSemantics, (), ()> = program.ignore_warnings();
+    let mut program = program.ignore_warnings();
 
     el.run_return(|event, _target, control_flow| {
         let next_frame_time = std::time::Instant::now() + std::time::Duration::from_nanos(16_666_667);
@@ -262,13 +267,13 @@ fn main() {
         //It turns out that luminance internally caches the graphics state.
         //So using it in parallel with webrender messes up that cache and makes drawing impossible.
         surface
-            .pipeline_builder()
+            .pipeline_gate()
             .pipeline(&backbuffer,
                       &PipelineState::default().set_clear_color(blue.to_array()),
                       |_, mut sh| {
-                          sh.shade(&program, |_, mut rend| {
+                          sh.shade(&mut program, |_, _, mut rend| {
                               rend.render(&RenderState::default(), |mut tess| {
-                                  tess.render(triangle.slice(..))
+                                  tess.render(triangle.slice(..).unwrap())
                               })
                           })
                       });

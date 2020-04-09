@@ -12,7 +12,8 @@ use glutin::event_loop::{ControlFlow, EventLoop, EventLoopProxy};
 use glutin::dpi::LogicalSize;
 use glutin::platform::desktop::EventLoopExtDesktop;
 use std::fs::File;
-use std::io::Read;
+use std::path::PathBuf;
+use std::io::BufReader;
 use widget::*;
 use crate::component::Component;
 use crate::state::{ImmutableStore, Store};
@@ -25,6 +26,7 @@ use luminance::tess::{Mode, TessBuilder};
 use luminance::shader::{Program, BuiltProgram};
 use luminance::tess::SubTess;
 use luminance::backend::render_gate::RenderGate;
+use image::{DynamicImage, GenericImageView};
 
 const VERTEX_SHADER: &str = include_str!("vs.glsl");
 
